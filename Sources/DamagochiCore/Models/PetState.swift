@@ -52,6 +52,9 @@ public struct PetState: Codable, Sendable {
     public var mbtiScores: MbtiScores
     public var personality: String?
     public var equippedItems: EquippedItems
+    public var inventory: [Equipment]
+    public var unlockedAchievements: [String]
+    public var graveyardEntries: [GraveyardEntry]
     public var createdAt: Date
     public var lastActiveAt: Date
     public var totalPrompts: Int
@@ -74,6 +77,9 @@ public struct PetState: Codable, Sendable {
         self.mbtiScores = MbtiScores()
         self.personality = nil
         self.equippedItems = EquippedItems()
+        self.inventory = []
+        self.unlockedAchievements = []
+        self.graveyardEntries = []
         self.createdAt = Date()
         self.lastActiveAt = Date()
         self.totalPrompts = 0

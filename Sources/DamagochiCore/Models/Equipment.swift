@@ -23,7 +23,7 @@ public struct Equipment: Codable, Sendable, Identifiable {
     }
 }
 
-public enum EquipmentSlot: String, Codable, Sendable {
+public enum EquipmentSlot: String, Codable, Sendable, CaseIterable {
     case head
     case hand
     case effect

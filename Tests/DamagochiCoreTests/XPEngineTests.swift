@@ -22,3 +22,24 @@ import Testing
     #expect(engine.stageForLevel(25) == .stage2)
     #expect(engine.stageForLevel(26) == .stage3)
 }
+
+@Test func multiLevelUp() {
+    let engine = XPEngine()
+    let result = engine.checkLevelUp(currentLevel: 1, currentXp: 250)
+    #expect(result.newLevel == 3)
+    #expect(result.remainingXp == 0)
+}
+
+@Test func noLevelUpWithInsufficientXp() {
+    let engine = XPEngine()
+    let result = engine.checkLevelUp(currentLevel: 5, currentXp: 10)
+    #expect(result.newLevel == 5)
+    #expect(result.remainingXp == 10)
+}
+
+@Test func xpForEvents() {
+    let engine = XPEngine()
+    #expect(engine.xpForEvent(BehaviorEvent(kind: .prompt)) == 5)
+    #expect(engine.xpForEvent(BehaviorEvent(kind: .toolUse)) == 3)
+    #expect(engine.xpForEvent(BehaviorEvent(kind: .sessionStart)) == 10)
+}

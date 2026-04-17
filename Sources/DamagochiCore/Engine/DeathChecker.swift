@@ -35,4 +35,20 @@ public struct DeathChecker: Sendable {
     public func shouldDie(inactiveBusinessDays: Int) -> Bool {
         inactiveBusinessDays >= Self.maxInactiveDays
     }
+
+    public func processDeath(state: inout PetState) -> GraveyardEntry {
+        let entry = GraveyardEntry(from: state)
+        state.phase = .dead
+        state.hp = 0
+        state.hunger = 0
+        state.mood = 0
+        return entry
+    }
+
+    public func restart(state: inout PetState) {
+        let deathCount = state.deathCount + 1
+        let machineId = state.machineId
+        state = PetState(machineId: machineId)
+        state.deathCount = deathCount
+    }
 }
