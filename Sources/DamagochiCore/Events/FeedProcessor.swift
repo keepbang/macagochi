@@ -55,7 +55,9 @@ public struct FeedProcessor: Sendable {
     public func process(event: BehaviorEvent, state: inout PetState) -> FeedResult {
         let xp = xpEngine.xpForEvent(event)
         state.totalXp += xp
-        state.xp += xp
+        if state.phase != .egg {
+            state.xp += xp
+        }
         state.lastActiveAt = event.timestamp
 
         switch event.kind {
