@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import CryptoKit
 import DamagochiCore
 import DamagochiMonitor
 import DamagochiStorage
@@ -47,7 +48,13 @@ final class PetViewModel: ObservableObject {
     private var notificationTimer: AnyCancellable?
 
     var currentFrames: [PixelSprite] {
-        SpriteSheet.frames(species: state.species, stage: state.stage, phase: state.phase)
+        SpriteSheet.frames(
+            species: state.species,
+            stage: state.stage,
+            phase: state.phase,
+            equipped: state.equippedItems,
+            inventory: state.inventory
+        )
     }
 
     var statusMessage: String {
@@ -67,8 +74,8 @@ final class PetViewModel: ObservableObject {
 
     var xpProgress: Double {
         let needed = XPEngine().xpNeededForLevel(state.level + 1)
-        guard needed > 0 else { return 0 }
-        return Double(state.xp) / Double(needed)
+        guard needed > 0 else { return 1 }
+        return min(1.0, Double(state.xp) / Double(needed))
     }
 
     var xpNeededForNextLevel: Int {
@@ -77,7 +84,12 @@ final class PetViewModel: ObservableObject {
 
     init() {
         self.notificationsEnabled = UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true
-        self.state = store.load() ?? PetState(machineId: ProcessInfo.processInfo.hostName)
+        let hostHash = ProcessInfo.processInfo.hostName
+            .data(using: .utf8)
+            .map { CryptoKit.SHA256.hash(data: $0) }
+            .map { $0.prefix(8).map { String(format: "%02x", $0) }.joined() }
+            ?? "unknown"
+        self.state = store.load() ?? PetState(machineId: hostHash)
         self.hookInstalled = hookInstaller.isInstalled()
     }
 
@@ -87,6 +99,16 @@ final class PetViewModel: ObservableObject {
         }
 
         checkDeath()
+
+        if state.phase == .alive {
+            let engine = XPEngine()
+            let result = engine.checkLevelUp(currentLevel: state.level, currentXp: state.xp)
+            if result.newLevel != state.level {
+                state.level = result.newLevel
+                state.xp = result.remainingXp
+                save()
+            }
+        }
 
         let pending = EventBridge.drainFileEvents()
         for event in pending {

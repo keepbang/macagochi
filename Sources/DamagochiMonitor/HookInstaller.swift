@@ -34,11 +34,16 @@ public struct HookInstaller: Sendable {
         for (event, entries) in Self.defaultHooks {
             var existing = (hooks[event] as? [[String: Any]]) ?? []
             existing.removeAll { entry in
-                guard let cmd = entry["command"] as? String else { return false }
-                return cmd.contains(Self.hookMarker)
+                guard let hooksList = entry["hooks"] as? [[String: Any]] else { return false }
+                return hooksList.contains { h in
+                    guard let cmd = h["command"] as? String else { return false }
+                    return cmd.contains(Self.hookMarker)
+                }
             }
             for entry in entries {
-                var dict: [String: Any] = ["command": entry.command]
+                var dict: [String: Any] = [
+                    "hooks": [["type": "command", "command": entry.command]]
+                ]
                 if let matcher = entry.matcher {
                     dict["matcher"] = matcher
                 }
@@ -58,8 +63,11 @@ public struct HookInstaller: Sendable {
         for event in Self.defaultHooks.keys {
             guard var entries = hooks[event] as? [[String: Any]] else { continue }
             entries.removeAll { entry in
-                guard let cmd = entry["command"] as? String else { return false }
-                return cmd.contains(Self.hookMarker)
+                guard let hooksList = entry["hooks"] as? [[String: Any]] else { return false }
+                return hooksList.contains { h in
+                    guard let cmd = h["command"] as? String else { return false }
+                    return cmd.contains(Self.hookMarker)
+                }
             }
             if entries.isEmpty {
                 hooks.removeValue(forKey: event)
@@ -83,8 +91,11 @@ public struct HookInstaller: Sendable {
         for event in Self.defaultHooks.keys {
             guard let entries = hooks[event] as? [[String: Any]] else { return false }
             let hasDamagochi = entries.contains { entry in
-                guard let cmd = entry["command"] as? String else { return false }
-                return cmd.contains(Self.hookMarker)
+                guard let hooksList = entry["hooks"] as? [[String: Any]] else { return false }
+                return hooksList.contains { h in
+                    guard let cmd = h["command"] as? String else { return false }
+                    return cmd.contains(Self.hookMarker)
+                }
             }
             if !hasDamagochi { return false }
         }
