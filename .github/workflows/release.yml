@@ -90,23 +90,10 @@ jobs:
           git clone "https://x-access-token:${TAP_TOKEN}@github.com/keepbang/homebrew-macagochi.git" /tmp/homebrew-tap
 
           # 로컬 Cask 파일을 소스로 사용 (version/sha256만 치환)
-          python3 - <<EOF
-          import re
-
-          src = "homebrew-tap/Casks/macagochi.rb"
-          dst = "/tmp/homebrew-tap/Casks/macagochi.rb"
-
-          with open(src) as f:
-              content = f.read()
-
-          content = re.sub(r'version "[^"]*"', f'version "{VERSION}"', content)
-          content = re.sub(r'sha256 "[^"]*"', f'sha256 "{SHA}"', content)
-
-          with open(dst, "w") as f:
-              f.write(content)
-
-          print(f"Updated: version={VERSION}, sha256={SHA}")
-          EOF
+          cp homebrew-tap/Casks/macagochi.rb /tmp/homebrew-tap/Casks/macagochi.rb
+          sed -i '' "s/version \"[^\"]*\"/version \"${VERSION}\"/" /tmp/homebrew-tap/Casks/macagochi.rb
+          sed -i '' "s/sha256 \"[^\"]*\"/sha256 \"${SHA}\"/" /tmp/homebrew-tap/Casks/macagochi.rb
+          echo "Updated: version=${VERSION}, sha256=${SHA}"
 
           cd /tmp/homebrew-tap
           git config user.name "github-actions[bot]"
