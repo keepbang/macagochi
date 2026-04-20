@@ -12,10 +12,10 @@ cask "macagochi" do
 
   postflight do
     system_command "/usr/bin/xattr",
-                   args: ["-cr", "/Applications/Damagochi.app"],
+                   args: ["-dr", "com.apple.quarantine", "/Applications/Damagochi.app"],
                    sudo: false
-    system_command "#{HOMEBREW_PREFIX}/bin/damagochi",
-                   args: ["hook", "install"],
+    system_command "/usr/bin/xattr",
+                   args: ["-dr", "com.apple.quarantine", "#{HOMEBREW_PREFIX}/bin/damagochi"],
                    sudo: false
   end
 
@@ -26,4 +26,12 @@ cask "macagochi" do
     "~/Library/Application Support/Damagochi",
     "~/Library/Preferences/com.damagochi.app.plist",
   ]
+
+  caveats <<~EOS
+    설치 후 아래 명령어로 Claude Code 훅을 등록하세요:
+      damagochi hook install
+
+    그 다음 앱을 실행하세요:
+      open /Applications/Damagochi.app
+  EOS
 end
