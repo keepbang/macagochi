@@ -31,15 +31,11 @@ else
     exit 1
 fi
 
-# Claude Code 훅 등록
-echo "→ Claude Code 훅 등록 중..."
-damagochi hook install
-echo "  완료"
-
 echo ""
 echo "=== 설치 완료! ==="
 echo ""
 echo "실행 방법:"
 echo "  open /Applications/Damagochi.app"
 echo ""
+echo "앱 실행 후 온보딩에서 Claude Code 훅이 자동으로 등록됩니다."
 echo "Claude Code를 사용할 때마다 펫이 성장합니다 :)"

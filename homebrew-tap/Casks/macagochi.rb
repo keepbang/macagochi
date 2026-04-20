@@ -28,10 +28,7 @@ cask "macagochi" do
   ]
 
   caveats <<~EOS
-    설치 후 아래 명령어로 Claude Code 훅을 등록하세요:
-      damagochi hook install
-
-    그 다음 앱을 실행하세요:
+    앱을 실행하면 온보딩에서 Claude Code 훅이 자동으로 등록됩니다:
       open /Applications/Damagochi.app
   EOS
 end
