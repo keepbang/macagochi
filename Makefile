@@ -1,6 +1,6 @@
 APP_NAME    = Damagochi
 CLI_NAME    = damagochi
-BUILD_DIR   = .build/release
+BUILD_DIR   = .build/apple/Products/Release
 APP_BUNDLE  = $(BUILD_DIR)/$(APP_NAME).app
 INSTALL_APP = /Applications/$(APP_NAME).app
 INSTALL_CLI = /usr/local/bin/$(CLI_NAME)
@@ -11,8 +11,8 @@ DIST_ZIP    = $(DIST_DIR)/Damagochi.zip
 .PHONY: build app install uninstall dist clean
 
 build:
-	swift build -c release --product DamagochiApp
-	swift build -c release --product damagochi
+	swift build -c release --product DamagochiApp --arch arm64 --arch x86_64
+	swift build -c release --product damagochi --arch arm64 --arch x86_64
 
 app: build
 	@mkdir -p "$(APP_BUNDLE)/Contents/MacOS"
