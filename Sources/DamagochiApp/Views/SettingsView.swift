@@ -127,6 +127,16 @@ struct SettingsView: View {
                     .foregroundStyle(.tertiary)
                 Spacer()
             }
+
+            Divider()
+
+            Button(action: { NSApplication.shared.terminate(nil) }) {
+                Label("앱 종료", systemImage: "power")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .tint(.red)
         }
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 8).fill(.quaternary.opacity(0.3)))
