@@ -1,13 +1,60 @@
 import SwiftUI
 import DamagochiCore
 
-public enum PixelColor: UInt32, Sendable {
-    case clear = 0x00000000
-    case black = 0xFF000000
-    case white = 0xFFFFFFFF
-    case primary = 0xFF4A9EFF
-    case secondary = 0xFFFFA500
+// MARK: - Pixel Color
+
+public struct PixelColor: Sendable, Equatable {
+    public let rawValue: UInt32
+
+    public init(_ rawValue: UInt32) {
+        self.rawValue = rawValue
+    }
+
+    public var isTransparent: Bool { (rawValue >> 24) & 0xFF == 0 }
+
+    public static let clear     = PixelColor(0x00000000)
+    public static let black     = PixelColor(0xFF000000)
+    public static let white     = PixelColor(0xFFFFFFFF)
+    public static let darkGray  = PixelColor(0xFF555555)
+    public static let gray      = PixelColor(0xFF888888)
+    public static let lightGray = PixelColor(0xFFBBBBBB)
+
+    public static let red       = PixelColor(0xFFCC3333)
+    public static let orange    = PixelColor(0xFFFFA500)
+    public static let yellow    = PixelColor(0xFFFFD700)
+    public static let gold      = PixelColor(0xFFDAA520)
+    public static let cream     = PixelColor(0xFFFFF8DC)
+    public static let peach     = PixelColor(0xFFFFDAB9)
+
+    public static let blue      = PixelColor(0xFF4A9EFF)
+    public static let darkBlue  = PixelColor(0xFF2255AA)
+    public static let green     = PixelColor(0xFF44BB44)
+    public static let darkGreen = PixelColor(0xFF228822)
+    public static let teal      = PixelColor(0xFF44BBBB)
+    public static let mint      = PixelColor(0xFF88DDAA)
+
+    public static let brown     = PixelColor(0xFF8B4513)
+    public static let tan       = PixelColor(0xFFD2B48C)
+    public static let pink      = PixelColor(0xFFFF69B4)
+    public static let purple    = PixelColor(0xFF9B59B6)
+    public static let lavender  = PixelColor(0xFFBB88FF)
+    public static let coral     = PixelColor(0xFFFF6B6B)
+    public static let ginger    = PixelColor(0xFFCD853F)
+    public static let darkRed   = PixelColor(0xFF881111)
+    public static let lime      = PixelColor(0xFF88CC44)
+
+    public func grayed() -> PixelColor {
+        guard !isTransparent else { return self }
+        let a = (rawValue >> 24) & 0xFF
+        let r = (rawValue >> 16) & 0xFF
+        let g = (rawValue >> 8) & 0xFF
+        let b = rawValue & 0xFF
+        let lum = (r * 30 + g * 59 + b * 11) / 100
+        return PixelColor(a << 24 | lum << 16 | lum << 8 | lum)
+    }
 }
+
+// MARK: - Pixel Sprite
 
 public struct PixelSprite: Sendable {
     public let width: Int
@@ -19,7 +66,39 @@ public struct PixelSprite: Sendable {
         self.height = height
         self.pixels = pixels
     }
+
+    public init(palette: [Character: PixelColor], rows: [String]) {
+        self.height = rows.count
+        self.width = rows.first?.count ?? 0
+        self.pixels = rows.map { row in
+            row.map { ch in palette[ch] ?? .clear }
+        }
+    }
+
+    public func grayed() -> PixelSprite {
+        PixelSprite(
+            width: width, height: height,
+            pixels: pixels.map { row in row.map { $0.grayed() } }
+        )
+    }
+
+    public func overlaid(with overlay: PixelSprite) -> PixelSprite {
+        var result = pixels
+        for row in 0..<min(height, overlay.height) {
+            for col in 0..<min(width, overlay.width) {
+                let px = overlay.pixels[row][col]
+                if !px.isTransparent {
+                    result[row][col] = px
+                }
+            }
+        }
+        return PixelSprite(width: width, height: height, pixels: result)
+    }
+
+    public static let empty = PixelSprite(width: 0, height: 0, pixels: [])
 }
+
+// MARK: - Pixel Art View
 
 public struct PixelArtView: View {
     let sprite: PixelSprite
@@ -31,11 +110,11 @@ public struct PixelArtView: View {
     }
 
     public var body: some View {
-        Canvas { context, size in
+        Canvas { context, _ in
             for row in 0..<sprite.height {
                 for col in 0..<sprite.width {
                     let color = sprite.pixels[row][col]
-                    guard color != .clear else { continue }
+                    guard !color.isTransparent else { continue }
                     let rect = CGRect(
                         x: CGFloat(col) * scale,
                         y: CGFloat(row) * scale,
@@ -50,6 +129,40 @@ public struct PixelArtView: View {
         .drawingGroup()
     }
 }
+
+// MARK: - Animated Pet View
+
+public struct AnimatedPetView: View {
+    let frames: [PixelSprite]
+    let scale: CGFloat
+    let interval: TimeInterval
+
+    @State private var currentFrame = 0
+
+    public init(frames: [PixelSprite], scale: CGFloat = 8.0, interval: TimeInterval = 0.5) {
+        self.frames = frames
+        self.scale = scale
+        self.interval = interval
+    }
+
+    public var body: some View {
+        Group {
+            if frames.isEmpty {
+                Color.clear.frame(width: 128, height: 128)
+            } else {
+                PixelArtView(sprite: frames[currentFrame % frames.count], scale: scale)
+            }
+        }
+        .onReceive(
+            Timer.publish(every: interval, on: .main, in: .common).autoconnect()
+        ) { _ in
+            guard frames.count > 1 else { return }
+            currentFrame = (currentFrame + 1) % frames.count
+        }
+    }
+}
+
+// MARK: - Color Extension
 
 extension Color {
     init(hex: UInt32) {

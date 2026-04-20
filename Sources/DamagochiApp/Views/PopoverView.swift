@@ -1,38 +1,125 @@
 import SwiftUI
 import DamagochiCore
+import DamagochiRenderer
 
 struct PopoverView: View {
     @ObservedObject var viewModel: PetViewModel
 
     var body: some View {
-        VStack(spacing: 12) {
-            petEmoji
-                .font(.system(size: 64))
+        VStack(spacing: 0) {
+            tabContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            Text(viewModel.state.name ?? "Damagochi")
+            Divider()
+            tabBar
+        }
+        .frame(width: 280, height: 420)
+        .overlay(alignment: .top) {
+            notificationBanner
+        }
+    }
+
+    // MARK: - Tab Content
+
+    @ViewBuilder
+    private var tabContent: some View {
+        switch viewModel.selectedTab {
+        case .pet:          petView
+        case .inventory:    InventoryView(viewModel: viewModel)
+        case .achievements: AchievementView(viewModel: viewModel)
+        case .graveyard:    GraveyardView(viewModel: viewModel)
+        case .settings:     SettingsView(viewModel: viewModel)
+        }
+    }
+
+    // MARK: - Pet View
+
+    private var petView: some View {
+        VStack(spacing: 8) {
+            Spacer(minLength: 4)
+
+            characterArea
+                .padding(.horizontal)
+
+            speechBubble
+                .padding(.horizontal)
+
+            nameLevel
+                .padding(.horizontal)
+
+            statusBars
+                .padding(.horizontal)
+
+            xpBar
+                .padding(.horizontal)
+
+            statsRow
+                .padding(.horizontal)
+
+            Spacer(minLength: 4)
+
+            if viewModel.state.phase == .dead {
+                rebirthButton
+                    .padding(.horizontal)
+                    .padding(.bottom, 4)
+            }
+        }
+    }
+
+    // MARK: - Character
+
+    private var characterArea: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.quaternary.opacity(0.3))
+
+            AnimatedPetView(
+                frames: viewModel.currentFrames,
+                scale: 8.0,
+                interval: 0.5
+            )
+            .modifier(StateAnimationModifier(state: viewModel.state))
+        }
+        .frame(height: 140)
+    }
+
+    // MARK: - Speech Bubble
+
+    private var speechBubble: some View {
+        HStack {
+            Text("💬")
+                .font(.caption2)
+            Text(viewModel.statusMessage)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer()
+        }
+    }
+
+    // MARK: - Name & Level
+
+    private var nameLevel: some View {
+        HStack {
+            Text(viewModel.state.name ?? speciesName)
                 .font(.headline)
-
-            statusSection
-
-            statsSection
-        }
-        .frame(width: 280, height: 400)
-        .padding()
-    }
-
-    private var petEmoji: some View {
-        switch viewModel.state.phase {
-        case .egg:
-            Text("🥚")
-        case .alive:
-            Text("🐣")
-        case .dead:
-            Text("💀")
+            Spacer()
+            if viewModel.state.phase == .alive {
+                Text("Lv.\(viewModel.state.level)")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.blue)
+            }
         }
     }
 
-    private var statusSection: some View {
-        VStack(spacing: 4) {
+    private var speciesName: String {
+        guard let id = viewModel.state.species else { return "Damagochi" }
+        return Species.allSpecies.first(where: { $0.id == id })?.name ?? id
+    }
+
+    // MARK: - Status Bars
+
+    private var statusBars: some View {
+        VStack(spacing: 3) {
             statusBar(label: "HP", value: viewModel.state.hp, color: .red)
             statusBar(label: "배고픔", value: viewModel.state.hunger, color: .orange)
             statusBar(label: "기분", value: viewModel.state.mood, color: .blue)
@@ -40,48 +127,139 @@ struct PopoverView: View {
     }
 
     private func statusBar(label: String, value: Int, color: Color) -> some View {
-        HStack {
+        HStack(spacing: 4) {
             Text(label)
-                .font(.caption)
-                .frame(width: 40, alignment: .leading)
-            ProgressView(value: Double(value), total: 100)
-                .tint(color)
-            Text("\(value)")
                 .font(.caption2)
+                .frame(width: 36, alignment: .leading)
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(color.opacity(0.15))
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(color)
+                        .frame(width: geo.size.width * CGFloat(value) / 100)
+                }
+            }
+            .frame(height: 8)
+
+            Text("\(value)")
+                .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
-                .frame(width: 28, alignment: .trailing)
+                .frame(width: 24, alignment: .trailing)
         }
     }
 
-    private var statsSection: some View {
-        VStack(spacing: 4) {
+    // MARK: - XP Bar
+
+    private var xpBar: some View {
+        VStack(spacing: 2) {
             HStack {
-                Text("Lv.\(viewModel.state.level)")
-                    .font(.subheadline.bold())
+                Text("XP")
+                    .font(.caption2.bold())
                 Spacer()
-                Text("XP: \(viewModel.state.xp)")
-                    .font(.caption)
+                Text("\(viewModel.state.xp) / \(viewModel.xpNeededForNextLevel)")
+                    .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
 
-            Divider()
-
-            HStack {
-                statItem(icon: "text.bubble", count: viewModel.state.totalPrompts)
-                Spacer()
-                statItem(icon: "wrench", count: viewModel.state.totalToolUses)
-                Spacer()
-                statItem(icon: "play.circle", count: viewModel.state.totalSessions)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.purple.opacity(0.15))
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.purple)
+                        .frame(width: geo.size.width * viewModel.xpProgress)
+                }
             }
-            .font(.caption)
+            .frame(height: 6)
         }
-        .padding(.top, 8)
+    }
+
+    // MARK: - Stats Row
+
+    private var statsRow: some View {
+        HStack {
+            statItem(icon: "text.bubble", count: viewModel.state.totalPrompts)
+            Spacer()
+            statItem(icon: "wrench", count: viewModel.state.totalToolUses)
+            Spacer()
+            statItem(icon: "play.circle", count: viewModel.state.totalSessions)
+        }
+        .font(.caption)
+        .padding(.top, 2)
     }
 
     private func statItem(icon: String, count: Int) -> some View {
         HStack(spacing: 2) {
             Image(systemName: icon)
+                .foregroundStyle(.secondary)
             Text("\(count)")
+                .monospacedDigit()
         }
     }
+
+    // MARK: - Rebirth
+
+    private var rebirthButton: some View {
+        Button(action: { viewModel.rebirth() }) {
+            Label("다시 시작", systemImage: "arrow.counterclockwise.circle.fill")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.small)
+    }
+
+    // MARK: - Tab Bar
+
+    private var tabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(AppTab.allCases, id: \.self) { tab in
+                Button(action: { viewModel.selectedTab = tab }) {
+                    Image(systemName: tab.icon)
+                        .font(.system(size: 14))
+                        .frame(maxWidth: .infinity, minHeight: 32)
+                        .foregroundStyle(viewModel.selectedTab == tab ? .blue : .secondary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 8)
+    }
+
+    // MARK: - Notification Banner
+
+    @ViewBuilder
+    private var notificationBanner: some View {
+        if let notification = viewModel.notification {
+            HStack(spacing: 6) {
+                Image(systemName: notification.icon)
+                Text(notification.message)
+                    .font(.caption.bold())
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(.thinMaterial, in: Capsule())
+            .padding(.top, 8)
+            .transition(.move(edge: .top).combined(with: .opacity))
+            .animation(.spring(duration: 0.3), value: viewModel.notification?.id)
+        }
+    }
+}
+
+// MARK: - State Animation Modifier
+
+struct StateAnimationModifier: ViewModifier {
+    let state: PetState
+
+    func body(content: Content) -> some View {
+        content
+            .offset(y: state.phase == .alive && state.mood > 80 ? bounceOffset : 0)
+            .rotationEffect(state.hunger < 20 ? wobbleAngle : .zero)
+            .saturation(state.phase == .dead ? 0 : 1)
+            .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: state.mood)
+    }
+
+    @State private var bounceOffset: CGFloat = -3
+    @State private var wobbleAngle: Angle = .degrees(-3)
 }

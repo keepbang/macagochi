@@ -63,6 +63,12 @@ public struct PetState: Codable, Sendable {
     public var consecutiveWorkdays: Int
     public var deathCount: Int
 
+    public var stage: Stage {
+        if level >= 26 { return .stage3 }
+        if level >= 11 { return .stage2 }
+        return .stage1
+    }
+
     public init(machineId: String) {
         self.machineId = machineId
         self.phase = .egg
