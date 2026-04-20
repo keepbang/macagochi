@@ -59,5 +59,9 @@ let package = Package(
             name: "DamagochiMonitorTests",
             dependencies: ["DamagochiMonitor"]
         ),
+        .testTarget(
+            name: "DamagochiIntegrationTests",
+            dependencies: ["DamagochiCore"]
+        ),
     ]
 )

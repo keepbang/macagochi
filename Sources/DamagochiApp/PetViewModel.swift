@@ -25,18 +25,25 @@ struct PetNotification: Identifiable {
     let icon: String
 }
 
+@MainActor
 final class PetViewModel: ObservableObject {
     @Published var state: PetState
     @Published var selectedTab: AppTab = .pet
     @Published var notification: PetNotification?
     @Published var hookInstalled: Bool = false
+    @Published var notificationsEnabled: Bool {
+        didSet { UserDefaults.standard.set(notificationsEnabled, forKey: "notificationsEnabled") }
+    }
 
     private let store = PetStore()
     private let processor = FeedProcessor()
+    private let deathChecker = DeathChecker()
     private let inventoryManager = InventoryManager()
     private let hookInstaller = HookInstaller()
+    private let notificationManager = NotificationManager.shared
     private var eventObserver: NSObjectProtocol?
     private var monitor: ClaudeSessionMonitor?
+    private var deathCheckTimer: AnyCancellable?
     private var notificationTimer: AnyCancellable?
 
     var currentFrames: [PixelSprite] {
@@ -69,11 +76,18 @@ final class PetViewModel: ObservableObject {
     }
 
     init() {
+        self.notificationsEnabled = UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true
         self.state = store.load() ?? PetState(machineId: ProcessInfo.processInfo.hostName)
         self.hookInstalled = hookInstaller.isInstalled()
     }
 
     func start() {
+        if notificationsEnabled {
+            notificationManager.requestPermission()
+        }
+
+        checkDeath()
+
         let pending = EventBridge.drainFileEvents()
         for event in pending {
             processor.process(event: event, state: &state)
@@ -81,20 +95,23 @@ final class PetViewModel: ObservableObject {
         if !pending.isEmpty { save() }
 
         eventObserver = EventBridge.observe { [weak self] event in
-            DispatchQueue.main.async { self?.handleEvent(event) }
+            Task { @MainActor in self?.handleEvent(event) }
         }
 
         monitor = ClaudeSessionMonitor(
             onDelta: { [weak self] delta in
-                DispatchQueue.main.async { self?.handleDelta(delta) }
+                Task { @MainActor in self?.handleDelta(delta) }
             },
             onSessionStart: { [weak self] in
-                DispatchQueue.main.async {
-                    self?.handleEvent(BehaviorEvent(kind: .sessionStart))
-                }
+                let event = BehaviorEvent(kind: .sessionStart)
+                Task { @MainActor in self?.handleEvent(event) }
             }
         )
         monitor?.startMonitoring()
+
+        deathCheckTimer = Timer.publish(every: 3600, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in self?.checkDeath() }
     }
 
     func stop() {
@@ -102,6 +119,7 @@ final class PetViewModel: ObservableObject {
             EventBridge.removeObserver(observer)
         }
         monitor?.stopMonitoring()
+        deathCheckTimer?.cancel()
         save()
     }
 
@@ -159,30 +177,78 @@ final class PetViewModel: ObservableObject {
     private func handleEvent(_ event: BehaviorEvent) {
         let oldLevel = state.level
         let oldPhase = state.phase
-        processor.process(event: event, state: &state)
-        checkNotifications(oldLevel: oldLevel, oldPhase: oldPhase)
+        let result = processor.process(event: event, state: &state)
+        checkNotifications(oldLevel: oldLevel, oldPhase: oldPhase, result: result)
         save()
     }
 
     private func handleDelta(_ delta: SessionDelta) {
         let oldLevel = state.level
         let oldPhase = state.phase
+        var combinedResult = FeedResult()
         for _ in 0..<delta.newPrompts {
-            processor.process(event: BehaviorEvent(kind: .prompt), state: &state)
+            let r = processor.process(event: BehaviorEvent(kind: .prompt), state: &state)
+            combinedResult = combinedResult.merged(with: r)
         }
         for _ in 0..<delta.newToolUses {
-            processor.process(event: BehaviorEvent(kind: .toolUse), state: &state)
+            let r = processor.process(event: BehaviorEvent(kind: .toolUse), state: &state)
+            combinedResult = combinedResult.merged(with: r)
         }
-        checkNotifications(oldLevel: oldLevel, oldPhase: oldPhase)
+        checkNotifications(oldLevel: oldLevel, oldPhase: oldPhase, result: combinedResult)
         save()
     }
 
-    private func checkNotifications(oldLevel: Int, oldPhase: PetPhase) {
+    private func checkNotifications(oldLevel: Int, oldPhase: PetPhase, result: FeedResult) {
         if oldPhase == .egg && state.phase == .alive {
             showNotification("🐣 알이 부화했습니다!", icon: "sparkles")
+            let speciesName = state.species.flatMap { id in
+                Species.allSpecies.first(where: { $0.id == id })?.name
+            } ?? "펫"
+            sendSystemNotification { $0.sendHatched(speciesName: speciesName) }
         } else if state.level > oldLevel {
             showNotification("⬆️ 레벨 \(state.level) 달성!", icon: "arrow.up.circle.fill")
+            sendSystemNotification { $0.sendLevelUp(level: self.state.level) }
         }
+
+        for item in result.droppedEquipment {
+            sendSystemNotification { $0.sendEquipmentDrop(name: item.name) }
+        }
+        for achievement in result.newAchievements {
+            sendSystemNotification { $0.sendAchievement(name: achievement.name) }
+        }
+
+        if state.phase == .alive && state.hunger < 20 {
+            sendSystemNotification { $0.sendHungerWarning(hunger: self.state.hunger) }
+        }
+    }
+
+    private func checkDeath() {
+        guard state.phase == .alive else { return }
+        let days = deathChecker.inactiveBusinessDays(lastActive: state.lastActiveAt, now: Date())
+
+        if deathChecker.shouldDie(inactiveBusinessDays: days) {
+            let entry = deathChecker.processDeath(state: &state)
+            state.graveyardEntries.append(entry)
+            save()
+            showNotification("💀 펫이 사망했습니다...", icon: "heart.slash.fill")
+            sendSystemNotification { $0.sendDeath() }
+            return
+        }
+
+        let warning = deathChecker.warningLevel(inactiveBusinessDays: days)
+        switch warning {
+        case .critical:
+            sendSystemNotification { $0.sendDeathRisk(days: days) }
+        case .warning:
+            sendSystemNotification { $0.sendDeathRisk(days: days) }
+        case .none:
+            break
+        }
+    }
+
+    private func sendSystemNotification(_ action: (NotificationManager) -> Void) {
+        guard notificationsEnabled else { return }
+        action(notificationManager)
     }
 
     private func showNotification(_ message: String, icon: String) {

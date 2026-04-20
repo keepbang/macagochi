@@ -4,8 +4,19 @@ import DamagochiRenderer
 
 struct PopoverView: View {
     @ObservedObject var viewModel: PetViewModel
+    @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "onboardingCompleted")
 
     var body: some View {
+        Group {
+            if showOnboarding {
+                OnboardingView(viewModel: viewModel, showOnboarding: $showOnboarding)
+            } else {
+                mainContent
+            }
+        }
+    }
+
+    private var mainContent: some View {
         VStack(spacing: 0) {
             tabContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

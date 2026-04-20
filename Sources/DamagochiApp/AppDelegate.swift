@@ -4,6 +4,7 @@ import DamagochiCore
 import DamagochiRenderer
 import Combine
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
@@ -11,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var stateSubscription: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NotificationManager.shared.requestPermission()
         viewModel.start()
 
         let popover = NSPopover()
@@ -22,8 +24,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = statusItem.button {
             updateMenuBarIcon(button: button)
+            updateTooltip(button: button)
             button.action = #selector(togglePopover(_:))
             button.target = self
+            button.setAccessibilityLabel("Damagochi")
+            button.setAccessibilityRole(.button)
         }
         self.statusItem = statusItem
 
@@ -32,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] _ in
                 guard let button = self?.statusItem?.button else { return }
                 self?.updateMenuBarIcon(button: button)
+                self?.updateTooltip(button: button)
             }
     }
 
@@ -46,6 +52,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             popover.contentViewController?.view.window?.makeKey()
+        }
+    }
+
+    private func updateTooltip(button: NSStatusBarButton) {
+        let state = viewModel.state
+        switch state.phase {
+        case .egg:
+            button.toolTip = "Damagochi — 알 (XP: \(state.totalXp)/100)"
+        case .alive:
+            let name = state.name ?? state.species.flatMap { id in
+                Species.allSpecies.first(where: { $0.id == id })?.name
+            } ?? "펫"
+            button.toolTip = "Damagochi — \(name) Lv.\(state.level)"
+        case .dead:
+            button.toolTip = "Damagochi — 사망"
         }
     }
 

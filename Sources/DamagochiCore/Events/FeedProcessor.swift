@@ -15,6 +15,16 @@ public struct FeedResult: Sendable {
         self.droppedEquipment = droppedEquipment
         self.newAchievements = newAchievements
     }
+
+    public func merged(with other: FeedResult) -> FeedResult {
+        FeedResult(
+            xpGained: xpGained + other.xpGained,
+            hatched: hatched || other.hatched,
+            levelsGained: levelsGained + other.levelsGained,
+            droppedEquipment: droppedEquipment + other.droppedEquipment,
+            newAchievements: newAchievements + other.newAchievements
+        )
+    }
 }
 
 public struct FeedProcessor: Sendable {

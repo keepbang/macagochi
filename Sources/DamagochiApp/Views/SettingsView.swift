@@ -15,6 +15,7 @@ struct SettingsView: View {
             ScrollView {
                 VStack(spacing: 12) {
                     hookSection
+                    notificationSection
                     petInfoSection
                     appInfoSection
                 }
@@ -63,6 +64,28 @@ struct SettingsView: View {
         .background(RoundedRectangle(cornerRadius: 8).fill(.quaternary.opacity(0.3)))
     }
 
+    // MARK: - Notification Section
+
+    private var notificationSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("알림", systemImage: "bell.fill")
+                .font(.caption.bold())
+
+            Toggle(isOn: $viewModel.notificationsEnabled) {
+                Text("시스템 알림")
+                    .font(.caption)
+            }
+            .toggleStyle(.switch)
+            .controlSize(.mini)
+
+            Text("레벨업, 부화, 장비 획득, 사망 위험 등을 알려줍니다")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(10)
+        .background(RoundedRectangle(cornerRadius: 8).fill(.quaternary.opacity(0.3)))
+    }
+
     // MARK: - Pet Info
 
     private var petInfoSection: some View {
@@ -94,7 +117,7 @@ struct SettingsView: View {
                 .font(.caption.bold())
 
             infoRow("이름", value: "Damagochi")
-            infoRow("버전", value: "0.4.0")
+            infoRow("버전", value: "1.0.0")
             infoRow("플랫폼", value: "macOS 14+")
 
             HStack {
