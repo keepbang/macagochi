@@ -1,0 +1,113 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: '릴리스할 브랜치'
+        required: true
+        default: 'master'
+        type: string
+      bump:
+        description: '버전 업 타입'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  release:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 현재 버전 읽기 및 증가
+        id: version
+        run: |
+          CURRENT=$(plutil -extract CFBundleShortVersionString raw Resources/Info.plist)
+          echo "current=$CURRENT"
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          case "${{ inputs.bump }}" in
+            major) NEW="$((MAJOR+1)).0.0" ;;
+            minor) NEW="$MAJOR.$((MINOR+1)).0" ;;
+            patch) NEW="$MAJOR.$MINOR.$((PATCH+1))" ;;
+          esac
+
+          echo "new=$NEW" >> $GITHUB_OUTPUT
+          echo "tag=v$NEW" >> $GITHUB_OUTPUT
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+
+      - name: Info.plist 버전 업데이트
+        run: |
+          VERSION="${{ steps.version.outputs.new }}"
+          plutil -replace CFBundleShortVersionString -string "$VERSION" Resources/Info.plist
+          plutil -replace CFBundleVersion -string "$VERSION" Resources/Info.plist
+
+      - name: 버전 커밋 & 태그
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Resources/Info.plist
+          git commit -m "chore: bump version to ${{ steps.version.outputs.new }}"
+          git tag "${{ steps.version.outputs.tag }}"
+          git push origin "${{ inputs.branch }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
+      - name: dist 빌드
+        run: make dist
+
+      - name: SHA256 계산
+        id: sha
+        run: |
+          SHA=$(shasum -a 256 dist/Damagochi.zip | awk '{print $1}')
+          echo "sha256=$SHA" >> $GITHUB_OUTPUT
+
+      - name: GitHub Release 생성 및 zip 업로드
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            dist/Damagochi.zip \
+            --title "${{ steps.version.outputs.tag }}" \
+            --generate-notes
+
+      - name: Homebrew Cask 업데이트
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.new }}"
+          SHA="${{ steps.sha.outputs.sha256 }}"
+
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/keepbang/homebrew-macagochi.git" /tmp/homebrew-tap
+
+          python3 - <<EOF
+          import re
+
+          path = "/tmp/homebrew-tap/Casks/macagochi.rb"
+          with open(path) as f:
+              content = f.read()
+
+          content = re.sub(r'version "[^"]*"', f'version "{VERSION}"', content)
+          content = re.sub(r'sha256 "[^"]*"', f'sha256 "{SHA}"', content)
+
+          with open(path, "w") as f:
+              f.write(content)
+
+          print(f"Updated: version={VERSION}, sha256={SHA}")
+          EOF
+
+          cd /tmp/homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/macagochi.rb
+          git commit -m "chore: update macagochi to v${VERSION}"
+          git push
