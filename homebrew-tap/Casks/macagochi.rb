@@ -11,6 +11,9 @@ cask "macagochi" do
   binary "Damagochi/damagochi"
 
   postflight do
+    system_command "/usr/bin/xattr",
+                   args: ["-cr", "/Applications/Damagochi.app"],
+                   sudo: false
     system_command "#{HOMEBREW_PREFIX}/bin/damagochi",
                    args: ["hook", "install"],
                    sudo: false
@@ -23,14 +26,4 @@ cask "macagochi" do
     "~/Library/Application Support/Damagochi",
     "~/Library/Preferences/com.damagochi.app.plist",
   ]
-
-  caveats <<~EOS
-    앱이 서명되지 않아 Gatekeeper가 차단할 수 있습니다.
-    아래 명령어로 설치하면 경고 없이 실행됩니다:
-
-      brew install --cask --no-quarantine keepbang/macagochi/macagochi
-
-    이미 설치했다면:
-      xattr -cr /Applications/Damagochi.app
-  EOS
 end
