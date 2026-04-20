@@ -53,7 +53,7 @@ let package = Package(
         ),
         .testTarget(
             name: "DamagochiCoreTests",
-            dependencies: ["DamagochiCore"]
+            dependencies: ["DamagochiCore", "DamagochiMonitor"]
         ),
         .testTarget(
             name: "DamagochiMonitorTests",

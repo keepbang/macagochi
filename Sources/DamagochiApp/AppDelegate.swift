@@ -4,12 +4,15 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
+    let viewModel = PetViewModel()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        viewModel.start()
+
         let popover = NSPopover()
         popover.contentSize = NSSize(width: 280, height: 400)
         popover.behavior = .transient
-        popover.contentViewController = NSHostingController(rootView: PopoverView())
+        popover.contentViewController = NSHostingController(rootView: PopoverView(viewModel: viewModel))
         self.popover = popover
 
         let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -19,6 +22,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.target = self
         }
         self.statusItem = statusItem
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        viewModel.stop()
     }
 
     @objc private func togglePopover(_ sender: AnyObject?) {

@@ -30,8 +30,6 @@ struct Feed: ParsableCommand {
         }
 
         let event = BehaviorEvent(kind: kind)
-        let data = try JSONEncoder().encode(event)
-        let payload = String(data: data, encoding: .utf8) ?? ""
-        print(payload)
+        EventBridge.post(event: event)
     }
 }
