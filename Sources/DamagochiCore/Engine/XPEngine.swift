@@ -11,6 +11,22 @@ public struct XPEngine: Sendable {
         }
     }
 
+    public func streakMultiplier(streakDays: Int) -> Double {
+        switch streakDays {
+        case 0...2:   return 1.0
+        case 3...6:   return 1.5
+        case 7...13:  return 2.0
+        case 14...29: return 3.0
+        default:      return 5.0
+        }
+    }
+
+    public func xpForEvent(_ event: BehaviorEvent, streakDays: Int) -> Int {
+        let base = xpForEvent(event)
+        let multiplier = streakMultiplier(streakDays: streakDays)
+        return Int(Double(base) * multiplier)
+    }
+
     public func xpNeededForLevel(_ level: Int) -> Int {
         level * 50
     }

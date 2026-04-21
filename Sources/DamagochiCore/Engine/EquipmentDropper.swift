@@ -14,8 +14,12 @@ public struct EquipmentDropper: Sendable {
     public func dropEquipment(forLevel level: Int) -> Equipment {
         let rarity = rollRarity()
         let slot = EquipmentSlot.allCases.randomElement()!
-        let item = randomItem(slot: slot, rarity: rarity, level: level)
-        return item
+        return randomItem(slot: slot, rarity: rarity, level: level)
+    }
+
+    public func dropEquipment(forRarity rarity: Rarity) -> Equipment {
+        let slot = EquipmentSlot.allCases.randomElement()!
+        return randomItem(slot: slot, rarity: rarity, level: 0)
     }
 
     private func randomItem(slot: EquipmentSlot, rarity: Rarity, level: Int) -> Equipment {

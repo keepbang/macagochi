@@ -3,6 +3,7 @@ import DamagochiCore
 
 struct SettingsView: View {
     @ObservedObject var viewModel: PetViewModel
+    @State private var showReleaseConfirm = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -17,10 +18,23 @@ struct SettingsView: View {
                     hookSection
                     notificationSection
                     petInfoSection
+                    if viewModel.state.phase == .alive || viewModel.state.phase == .egg {
+                        releaseSection
+                    }
                     appInfoSection
                 }
                 .padding(12)
             }
+        }
+        .confirmationDialog(
+            "펫을 방생하시겠습니까?",
+            isPresented: $showReleaseConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("방생하기", role: .destructive) { viewModel.release() }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("현재 펫은 묘지에 기록되고 새로운 알이 생성됩니다.")
         }
     }
 
@@ -104,6 +118,29 @@ struct SettingsView: View {
             infoRow("총 XP", value: "\(viewModel.state.totalXp)")
             infoRow("연속 근무일", value: "\(viewModel.state.consecutiveWorkdays)일")
             infoRow("사망 횟수", value: "\(viewModel.state.deathCount)회")
+        }
+        .padding(10)
+        .background(RoundedRectangle(cornerRadius: 8).fill(.quaternary.opacity(0.3)))
+    }
+
+    // MARK: - Release
+
+    private var releaseSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("방생", systemImage: "bird.fill")
+                .font(.caption.bold())
+
+            Text("현재 펫을 자연으로 돌려보내고 새로운 알을 받습니다.\n펫은 묘지에 기록됩니다.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+
+            Button(action: { showReleaseConfirm = true }) {
+                Label("펫 방생하기", systemImage: "arrow.up.heart.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .tint(.teal)
         }
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 8).fill(.quaternary.opacity(0.3)))

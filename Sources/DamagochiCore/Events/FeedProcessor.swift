@@ -6,14 +6,19 @@ public struct FeedResult: Sendable {
     public var levelsGained: Int
     public var droppedEquipment: [Equipment]
     public var newAchievements: [Achievement]
+    public var streakUpdated: Bool
+    public var newStreakDays: Int
 
     public init(xpGained: Int = 0, hatched: Bool = false, levelsGained: Int = 0,
-                droppedEquipment: [Equipment] = [], newAchievements: [Achievement] = []) {
+                droppedEquipment: [Equipment] = [], newAchievements: [Achievement] = [],
+                streakUpdated: Bool = false, newStreakDays: Int = 0) {
         self.xpGained = xpGained
         self.hatched = hatched
         self.levelsGained = levelsGained
         self.droppedEquipment = droppedEquipment
         self.newAchievements = newAchievements
+        self.streakUpdated = streakUpdated
+        self.newStreakDays = newStreakDays
     }
 
     public func merged(with other: FeedResult) -> FeedResult {
@@ -22,7 +27,9 @@ public struct FeedResult: Sendable {
             hatched: hatched || other.hatched,
             levelsGained: levelsGained + other.levelsGained,
             droppedEquipment: droppedEquipment + other.droppedEquipment,
-            newAchievements: newAchievements + other.newAchievements
+            newAchievements: newAchievements + other.newAchievements,
+            streakUpdated: streakUpdated || other.streakUpdated,
+            newStreakDays: max(newStreakDays, other.newStreakDays)
         )
     }
 }
@@ -53,7 +60,18 @@ public struct FeedProcessor: Sendable {
 
     @discardableResult
     public func process(event: BehaviorEvent, state: inout PetState) -> FeedResult {
-        let xp = xpEngine.xpForEvent(event)
+        var streakUpdated = false
+        var newStreakDays = 0
+        if case .sessionStart = event.kind {
+            let prevStreak = state.streakDays
+            updateStreak(state: &state, now: event.timestamp)
+            if state.streakDays != prevStreak || state.lastStreakDate != nil {
+                streakUpdated = true
+                newStreakDays = state.streakDays
+            }
+        }
+
+        let xp = xpEngine.xpForEvent(event, streakDays: state.streakDays)
         state.totalXp += xp
         if state.phase != .egg {
             state.xp += xp
@@ -105,7 +123,49 @@ public struct FeedProcessor: Sendable {
             hatched: hatched,
             levelsGained: levelsGained,
             droppedEquipment: droppedEquipment,
-            newAchievements: newAchievements
+            newAchievements: newAchievements,
+            streakUpdated: streakUpdated,
+            newStreakDays: newStreakDays
         )
+    }
+
+    // MARK: - Streak
+
+    private func updateStreak(state: inout PetState, now: Date) {
+        let calendar = Calendar.current
+        guard let lastDate = state.lastStreakDate else {
+            state.streakDays = 1
+            state.lastStreakDate = now
+            state.longestStreak = max(state.longestStreak, 1)
+            grantStreakMilestone(state: &state)
+            return
+        }
+
+        let lastDay = calendar.startOfDay(for: lastDate)
+        let today = calendar.startOfDay(for: now)
+
+        guard lastDay != today else { return }
+
+        let dayDiff = calendar.dateComponents([.day], from: lastDay, to: today).day ?? 0
+        if dayDiff == 1 {
+            state.streakDays += 1
+        } else {
+            state.streakDays = 1
+        }
+        state.lastStreakDate = now
+        state.longestStreak = max(state.longestStreak, state.streakDays)
+        grantStreakMilestone(state: &state)
+    }
+
+    private func grantStreakMilestone(state: inout PetState) {
+        let milestones: [(Int, Rarity)] = [(7, .rare), (30, .legendary), (100, .mythic)]
+        for (days, rarity) in milestones {
+            let milestoneKey = "streak_milestone_\(days)"
+            if state.streakDays == days && !state.unlockedAchievements.contains(milestoneKey) {
+                state.unlockedAchievements.append(milestoneKey)
+                let item = equipmentDropper.dropEquipment(forRarity: rarity)
+                state.inventory.append(item)
+            }
+        }
     }
 }

@@ -90,8 +90,37 @@ struct PopoverView: View {
                 interval: 0.5
             )
             .modifier(StateAnimationModifier(state: viewModel.state))
+
+            bugOverlay
+
+            if let popup = viewModel.bugXPPopup {
+                Text(popup)
+                    .font(.caption.bold())
+                    .foregroundStyle(.yellow)
+                    .padding(4)
+                    .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 6))
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
         }
         .frame(height: 140)
+        .animation(.easeOut(duration: 0.3), value: viewModel.bugXPPopup)
+    }
+
+    private var bugOverlay: some View {
+        GeometryReader { geo in
+            ForEach(viewModel.state.activeBugs) { bug in
+                let hash = abs(bug.id.hashValue)
+                let x = CGFloat(hash % Int(geo.size.width - 24)) + 12
+                let y = CGFloat((hash / 100) % Int(geo.size.height - 24)) + 12
+                Button(action: { viewModel.catchBug(bug) }) {
+                    Text(bug.type.emoji)
+                        .font(.system(size: 18))
+                }
+                .buttonStyle(.plain)
+                .position(x: x, y: y)
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
     }
 
     // MARK: - Speech Bubble
@@ -196,9 +225,31 @@ struct PopoverView: View {
             statItem(icon: "wrench", count: viewModel.state.totalToolUses)
             Spacer()
             statItem(icon: "play.circle", count: viewModel.state.totalSessions)
+            Spacer()
+            streakItem
         }
         .font(.caption)
         .padding(.top, 2)
+    }
+
+    private var streakItem: some View {
+        HStack(spacing: 2) {
+            Text("🔥")
+                .font(.caption)
+            Text("\(viewModel.state.streakDays)일")
+                .monospacedDigit()
+                .foregroundStyle(streakColor)
+        }
+    }
+
+    private var streakColor: Color {
+        switch viewModel.state.streakDays {
+        case 0...2:   return .secondary
+        case 3...6:   return .orange
+        case 7...13:  return .red
+        case 14...29: return .purple
+        default:      return .yellow
+        }
     }
 
     private func statItem(icon: String, count: Int) -> some View {

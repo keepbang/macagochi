@@ -62,6 +62,13 @@ public struct PetState: Codable, Sendable {
     public var totalSessions: Int
     public var consecutiveWorkdays: Int
     public var deathCount: Int
+    public var streakDays: Int
+    public var longestStreak: Int
+    public var lastStreakDate: Date?
+    public var bugsCaught: Int
+    public var goldenBugsCaught: Int
+    public var rainbowBugsCaught: Int
+    public var activeBugs: [ActiveBug]
 
     public var stage: Stage {
         if level >= 26 { return .stage3 }
@@ -93,5 +100,12 @@ public struct PetState: Codable, Sendable {
         self.totalSessions = 0
         self.consecutiveWorkdays = 0
         self.deathCount = 0
+        self.streakDays = 0
+        self.longestStreak = 0
+        self.lastStreakDate = nil
+        self.bugsCaught = 0
+        self.goldenBugsCaught = 0
+        self.rainbowBugsCaught = 0
+        self.activeBugs = []
     }
 }

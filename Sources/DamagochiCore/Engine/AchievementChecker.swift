@@ -24,6 +24,10 @@ public struct AchievementChecker: Sendable {
         Achievement(id: "workdays_100", name: "백일의 약속", description: "100 영업일 연속 사용", tier: .diamond),
         Achievement(id: "rebirth", name: "불사조", description: "사망 후 다시 시작했다", tier: .silver),
         Achievement(id: "xp_10000", name: "경험의 대가", description: "총 XP 10,000 달성", tier: .gold),
+        Achievement(id: "bug_hunter", name: "버그 헌터", description: "버그 10마리 잡기", tier: .bronze),
+        Achievement(id: "exterminator", name: "익스터미네이터", description: "버그 100마리 잡기", tier: .silver),
+        Achievement(id: "golden_hand", name: "황금 손", description: "황금 버그 잡기", tier: .gold),
+        Achievement(id: "legendary_hunter", name: "전설의 사냥꾼", description: "레인보우 버그 잡기", tier: .diamond),
     ]
 
     public func check(state: PetState) -> [Achievement] {
@@ -83,6 +87,14 @@ public struct AchievementChecker: Sendable {
             return state.deathCount >= 1 && state.phase == .egg
         case "xp_10000":
             return state.totalXp >= 10000
+        case "bug_hunter":
+            return state.bugsCaught >= 10
+        case "exterminator":
+            return state.bugsCaught >= 100
+        case "golden_hand":
+            return state.goldenBugsCaught >= 1
+        case "legendary_hunter":
+            return state.rainbowBugsCaught >= 1
         default:
             return false
         }

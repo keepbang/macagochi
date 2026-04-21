@@ -46,6 +46,10 @@ final class PetViewModel: ObservableObject {
     private var monitor: ClaudeSessionMonitor?
     private var deathCheckTimer: AnyCancellable?
     private var notificationTimer: AnyCancellable?
+    private var bugSpawnTimer: AnyCancellable?
+    private var bugCleanupTimer: AnyCancellable?
+    @Published var bugXPPopup: String?
+    private var bugPopupTimer: AnyCancellable?
 
     var currentFrames: [PixelSprite] {
         SpriteSheet.frames(
@@ -134,6 +138,11 @@ final class PetViewModel: ObservableObject {
         deathCheckTimer = Timer.publish(every: 3600, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in self?.checkDeath() }
+
+        scheduleBugSpawn()
+        bugCleanupTimer = Timer.publish(every: 5, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in self?.cleanupExpiredBugs() }
     }
 
     func stop() {
@@ -142,7 +151,73 @@ final class PetViewModel: ObservableObject {
         }
         monitor?.stopMonitoring()
         deathCheckTimer?.cancel()
+        bugSpawnTimer?.cancel()
+        bugCleanupTimer?.cancel()
         save()
+    }
+
+    // MARK: - Bug Game
+
+    func catchBug(_ bug: ActiveBug) {
+        guard let idx = state.activeBugs.firstIndex(where: { $0.id == bug.id }) else { return }
+        state.activeBugs.remove(at: idx)
+
+        let xp = bug.type.xpReward
+        if state.phase == .alive {
+            state.xp += xp
+            state.totalXp += xp
+            state.mood = min(100, state.mood + 5)
+            let result = XPEngine().checkLevelUp(currentLevel: state.level, currentXp: state.xp)
+            if result.newLevel > state.level {
+                state.level = result.newLevel
+                state.xp = result.remainingXp
+                showNotification("⬆️ 레벨 \(state.level) 달성!", icon: "arrow.up.circle.fill")
+            } else {
+                state.xp = result.remainingXp
+            }
+        }
+
+        state.bugsCaught += 1
+        if bug.type == .golden  { state.goldenBugsCaught += 1 }
+        if bug.type == .rainbow { state.rainbowBugsCaught += 1 }
+
+        let checker = AchievementChecker()
+        let newAchievements = checker.check(state: state)
+        for a in newAchievements {
+            state.unlockedAchievements.append(a.id)
+            showNotification("🏆 \(a.name) 달성!", icon: "trophy.fill")
+        }
+
+        bugXPPopup = "+\(xp) XP \(bug.type.emoji)"
+        bugPopupTimer?.cancel()
+        bugPopupTimer = Just(()).delay(for: .seconds(1.5), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in self?.bugXPPopup = nil }
+
+        save()
+    }
+
+    private func scheduleBugSpawn() {
+        let interval = TimeInterval.random(in: 180...600)
+        bugSpawnTimer?.cancel()
+        bugSpawnTimer = Just(()).delay(for: .seconds(interval), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in self?.spawnBug() }
+    }
+
+    private func spawnBug() {
+        guard state.phase == .alive, state.activeBugs.count < 3 else {
+            scheduleBugSpawn()
+            return
+        }
+        let bug = ActiveBug(type: BugType.roll())
+        state.activeBugs.append(bug)
+        save()
+        scheduleBugSpawn()
+    }
+
+    private func cleanupExpiredBugs() {
+        let before = state.activeBugs.count
+        state.activeBugs.removeAll { $0.isExpired }
+        if state.activeBugs.count < before { save() }
     }
 
     // MARK: - Equipment
@@ -176,6 +251,22 @@ final class PetViewModel: ObservableObject {
             try hookInstaller.uninstall()
             hookInstalled = false
         } catch {}
+    }
+
+    // MARK: - Release
+
+    func release() {
+        guard state.phase == .alive || state.phase == .egg else { return }
+        let entry = GraveyardEntry(from: state, cause: "방생")
+        let previousEntries = state.graveyardEntries
+        let previousDeathCount = state.deathCount
+        let previousAchievements = state.unlockedAchievements
+        state = PetState(machineId: state.machineId)
+        state.graveyardEntries = previousEntries + [entry]
+        state.deathCount = previousDeathCount
+        state.unlockedAchievements = previousAchievements
+        save()
+        showNotification("🕊️ 펫을 방생했습니다. 새 알이 생겼어요!", icon: "bird.fill")
     }
 
     // MARK: - Rebirth
@@ -221,11 +312,32 @@ final class PetViewModel: ObservableObject {
     }
 
     private func checkNotifications(oldLevel: Int, oldPhase: PetPhase, result: FeedResult) {
+        if result.streakUpdated && result.newStreakDays > 0 {
+            let milestones = [7, 30, 100]
+            if milestones.contains(result.newStreakDays) {
+                showNotification("🎉 \(result.newStreakDays)일 스트릭 달성!", icon: "flame.fill")
+                sendSystemNotification { $0.sendStreakMilestone(days: result.newStreakDays) }
+            } else if result.newStreakDays > 1 {
+                showNotification("🔥 \(result.newStreakDays)일 연속 코딩!", icon: "flame")
+            }
+            sendSystemNotification { $0.scheduleStreakWarning(streakDays: result.newStreakDays) }
+        }
+
         if oldPhase == .egg && state.phase == .alive {
-            showNotification("🐣 알이 부화했습니다!", icon: "sparkles")
-            let speciesName = state.species.flatMap { id in
-                Species.allSpecies.first(where: { $0.id == id })?.name
-            } ?? "펫"
+            let speciesEntry = state.species.flatMap { id in
+                Species.allSpecies.first(where: { $0.id == id })
+            }
+            let speciesName = speciesEntry?.name ?? "펫"
+            let rarityLabel: String
+            switch speciesEntry?.rarity {
+            case .common:    rarityLabel = "⬜ 커먼"
+            case .rare:      rarityLabel = "🔵 레어"
+            case .legendary: rarityLabel = "🟡 레전더리"
+            case .mythic:    rarityLabel = "🌈 미식"
+            case nil:        rarityLabel = ""
+            }
+            let suffix = rarityLabel.isEmpty ? "" : " [\(rarityLabel)]"
+            showNotification("🐣 \(speciesName)\(suffix) 부화!", icon: "sparkles")
             sendSystemNotification { $0.sendHatched(speciesName: speciesName) }
         } else if state.level > oldLevel {
             showNotification("⬆️ 레벨 \(state.level) 달성!", icon: "arrow.up.circle.fill")

@@ -34,10 +34,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         stateSubscription = viewModel.$state
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
+            .sink { [weak self] state in
                 guard let button = self?.statusItem?.button else { return }
                 self?.updateMenuBarIcon(button: button)
                 self?.updateTooltip(button: button)
+                self?.updateBugBadge(button: button, bugCount: state.activeBugs.count)
             }
     }
 
@@ -67,6 +68,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.toolTip = "Damagochi — \(name) Lv.\(state.level)"
         case .dead:
             button.toolTip = "Damagochi — 사망"
+        }
+    }
+
+    private func updateBugBadge(button: NSStatusBarButton, bugCount: Int) {
+        if bugCount > 0 {
+            button.appearsDisabled = false
+            let badge = NSTextField(labelWithString: "\(bugCount)")
+            badge.font = .systemFont(ofSize: 8, weight: .bold)
+            badge.textColor = .white
+            badge.backgroundColor = .systemRed
+            badge.isBordered = false
+            badge.isEditable = false
+            button.toolTip = (button.toolTip ?? "") + " 🐛×\(bugCount)"
         }
     }
 

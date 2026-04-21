@@ -64,6 +64,37 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         send(title: "펫이 죽었습니다...", body: "14일간 활동이 없어 펫이 사망했습니다. 새로운 알로 다시 시작할 수 있습니다.")
     }
 
+    func sendStreakWarning(streakDays: Int) {
+        send(title: "스트릭 위기! 🔥",
+             body: "오늘 아직 코딩 안 했어요! \(streakDays)일 스트릭이 끊길 것 같아요 😢")
+    }
+
+    func sendStreakMilestone(days: Int) {
+        send(title: "스트릭 달성! 🎉", body: "\(days)일 연속 코딩 달성! 특별 장비를 획득했습니다!")
+    }
+
+    func scheduleStreakWarning(streakDays: Int) {
+        center.removePendingNotificationRequests(withIdentifiers: ["streak-warning"])
+        guard streakDays > 0 else { return }
+
+        var components = DateComponents()
+        components.hour = 21
+        components.minute = 0
+
+        let content = UNMutableNotificationContent()
+        content.title = "스트릭 위기! 🔥"
+        content.body = "오늘 아직 코딩 안 했어요! \(streakDays)일 스트릭이 끊길 것 같아요 😢"
+        content.sound = .default
+
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: "streak-warning",
+            content: content,
+            trigger: trigger
+        )
+        center.add(request)
+    }
+
     // MARK: - UNUserNotificationCenterDelegate
 
     func userNotificationCenter(
