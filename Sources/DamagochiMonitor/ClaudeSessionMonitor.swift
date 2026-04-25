@@ -29,28 +29,41 @@ public struct SessionDelta: Sendable {
     }
 }
 
+public struct SessionSummary: Sendable {
+    public var prompts: Int
+    public var toolUses: Int
+}
+
 public final class ClaudeSessionMonitor: @unchecked Sendable {
     public typealias DeltaHandler = @Sendable (SessionDelta) -> Void
     public typealias SessionStartHandler = @Sendable () -> Void
+    public typealias SessionEndHandler = @Sendable (SessionSummary) -> Void
 
     private let claudeDir: String
     private let onDelta: DeltaHandler?
     private let onSessionStart: SessionStartHandler?
+    private let onSessionEnd: SessionEndHandler?
 
     private var statsWatcher: FileSystemWatcher?
     private var sessionsWatcher: FileSystemWatcher?
     private var lastStats: SessionStats?
     private var lastSessionCount: Int = 0
     private let lock = NSLock()
+    private var inactivityWorkItem: DispatchWorkItem?
+    private let timerQueue = DispatchQueue(label: "damagochi.session-inactivity")
+    private var sessionPrompts: Int = 0
+    private var sessionToolUses: Int = 0
 
     public init(
         claudeDir: String = NSHomeDirectory() + "/.claude",
         onDelta: DeltaHandler? = nil,
-        onSessionStart: SessionStartHandler? = nil
+        onSessionStart: SessionStartHandler? = nil,
+        onSessionEnd: SessionEndHandler? = nil
     ) {
         self.claudeDir = claudeDir
         self.onDelta = onDelta
         self.onSessionStart = onSessionStart
+        self.onSessionEnd = onSessionEnd
     }
 
     public var sessionsPath: String { claudeDir + "/sessions" }
@@ -111,6 +124,8 @@ public final class ClaudeSessionMonitor: @unchecked Sendable {
         sessionsWatcher?.stop()
         statsWatcher = nil
         sessionsWatcher = nil
+        inactivityWorkItem?.cancel()
+        inactivityWorkItem = nil
     }
 
     private func handleStatsChange() {
@@ -122,8 +137,28 @@ public final class ClaudeSessionMonitor: @unchecked Sendable {
 
         let delta = computeDelta(from: old, to: newStats)
         if delta.hasActivity {
+            lock.lock()
+            sessionPrompts += delta.newPrompts
+            sessionToolUses += delta.newToolUses
+            lock.unlock()
             onDelta?(delta)
+            scheduleSessionEndCheck()
         }
+    }
+
+    private func scheduleSessionEndCheck() {
+        inactivityWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.lock.lock()
+            let summary = SessionSummary(prompts: self.sessionPrompts, toolUses: self.sessionToolUses)
+            self.sessionPrompts = 0
+            self.sessionToolUses = 0
+            self.lock.unlock()
+            self.onSessionEnd?(summary)
+        }
+        inactivityWorkItem = item
+        timerQueue.asyncAfter(deadline: .now() + 120, execute: item)
     }
 
     private func handleSessionsDirChange() {

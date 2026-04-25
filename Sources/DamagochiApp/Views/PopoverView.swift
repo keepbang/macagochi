@@ -35,11 +35,12 @@ struct PopoverView: View {
     @ViewBuilder
     private var tabContent: some View {
         switch viewModel.selectedTab {
-        case .pet:          petView
-        case .inventory:    InventoryView(viewModel: viewModel)
-        case .achievements: AchievementView(viewModel: viewModel)
-        case .graveyard:    GraveyardView(viewModel: viewModel)
-        case .settings:     SettingsView(viewModel: viewModel)
+        case .pet:           petView
+        case .inventory:     InventoryView(viewModel: viewModel)
+        case .achievements:  AchievementView(viewModel: viewModel)
+        case .graveyard:     GraveyardView(viewModel: viewModel)
+        case .notifications: NotificationsView(viewModel: viewModel)
+        case .settings:      SettingsView(viewModel: viewModel)
         }
     }
 
@@ -68,6 +69,12 @@ struct PopoverView: View {
                 .padding(.horizontal)
 
             Spacer(minLength: 4)
+
+            if viewModel.canWalk || viewModel.isWalking {
+                walkButton
+                    .padding(.horizontal)
+                    .padding(.bottom, 2)
+            }
 
             if viewModel.state.phase == .dead {
                 rebirthButton
@@ -269,6 +276,24 @@ struct PopoverView: View {
         }
     }
 
+    // MARK: - Walk
+
+    private var walkButton: some View {
+        Button(action: {
+            if viewModel.isWalking { viewModel.stopWalk() } else { viewModel.startWalk() }
+        }) {
+            Label(
+                viewModel.isWalking ? "산책 종료" : "산책 시키기",
+                systemImage: viewModel.isWalking ? "xmark.circle.fill" : "figure.walk"
+            )
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .tint(viewModel.isWalking ? .red : .teal)
+        .help(viewModel.isWalking ? "산책을 종료합니다" : "펫을 화면에 꺼내 산책시킵니다 (Stage 2 이상)")
+    }
+
     // MARK: - Rebirth
 
     private var rebirthButton: some View {
@@ -286,10 +311,19 @@ struct PopoverView: View {
         HStack(spacing: 0) {
             ForEach(AppTab.allCases, id: \.self) { tab in
                 Button(action: { viewModel.selectedTab = tab }) {
-                    Image(systemName: tab.icon)
-                        .font(.system(size: 14))
-                        .frame(maxWidth: .infinity, minHeight: 32)
-                        .foregroundStyle(viewModel.selectedTab == tab ? .blue : .secondary)
+                    ZStack(alignment: .topTrailing) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 14))
+                            .frame(maxWidth: .infinity, minHeight: 32)
+                            .foregroundStyle(viewModel.selectedTab == tab ? .blue : .secondary)
+
+                        if tab == .notifications && !viewModel.walkNotifications.isEmpty {
+                            Circle()
+                                .fill(.red)
+                                .frame(width: 7, height: 7)
+                                .offset(x: -6, y: 6)
+                        }
+                    }
                 }
                 .buttonStyle(.plain)
             }

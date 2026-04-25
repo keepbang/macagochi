@@ -7,15 +7,16 @@ import DamagochiStorage
 import DamagochiRenderer
 
 enum AppTab: String, CaseIterable {
-    case pet, inventory, achievements, graveyard, settings
+    case pet, inventory, achievements, graveyard, notifications, settings
 
     var icon: String {
         switch self {
-        case .pet:          return "pawprint.fill"
-        case .inventory:    return "bag.fill"
-        case .achievements: return "trophy.fill"
-        case .graveyard:    return "book.closed.fill"
-        case .settings:     return "gearshape.fill"
+        case .pet:           return "pawprint.fill"
+        case .inventory:     return "bag.fill"
+        case .achievements:  return "trophy.fill"
+        case .graveyard:     return "book.closed.fill"
+        case .notifications: return "bell.fill"
+        case .settings:      return "gearshape.fill"
         }
     }
 }
@@ -24,6 +25,12 @@ struct PetNotification: Identifiable {
     let id = UUID()
     let message: String
     let icon: String
+}
+
+struct WalkNotification: Identifiable {
+    let id = UUID()
+    let message: String
+    let timestamp: Date
 }
 
 @MainActor
@@ -49,7 +56,12 @@ final class PetViewModel: ObservableObject {
     private var notificationTimer: AnyCancellable?
     private var bugSpawnTimer: AnyCancellable?
     private var bugCleanupTimer: AnyCancellable?
+    @Published var isWalking: Bool = false
+    @Published var walkSpeechBubble: String?
+    @Published var walkNotifications: [WalkNotification] = []
     @Published var bugXPPopup: String?
+    private var walkingDecayTimer: AnyCancellable?
+    private var speechBubbleTimer: AnyCancellable?
     private var bugPopupTimer: AnyCancellable?
 
     var currentFrames: [PixelSprite] {
@@ -132,6 +144,16 @@ final class PetViewModel: ObservableObject {
             onSessionStart: { [weak self] in
                 let event = BehaviorEvent(kind: .sessionStart)
                 Task { @MainActor in self?.handleEvent(event) }
+            },
+            onSessionEnd: { [weak self] summary in
+                Task { @MainActor in
+                    guard self?.isWalking == true else { return }
+                    var parts: [String] = []
+                    if summary.prompts > 0 { parts.append("프롬프트 \(summary.prompts)개") }
+                    if summary.toolUses > 0 { parts.append("툴 \(summary.toolUses)번") }
+                    let detail = parts.isEmpty ? "" : " (\(parts.joined(separator: ", ")))"
+                    self?.showWalkSpeechBubble("작업 완료\(detail)! 수고했어요 🎉")
+                }
             }
         )
         monitor?.startMonitoring()
@@ -159,9 +181,55 @@ final class PetViewModel: ObservableObject {
         monitor?.stopMonitoring()
         deathCheckTimer?.cancel()
         decayTimer?.cancel()
+        walkingDecayTimer?.cancel()
         bugSpawnTimer?.cancel()
         bugCleanupTimer?.cancel()
         save()
+    }
+
+    // MARK: - Walk
+
+    var canWalk: Bool { state.phase == .alive && state.stage != .stage1 }
+
+    func startWalk() {
+        guard canWalk else { return }
+        isWalking = true
+        walkingDecayTimer = Timer.publish(every: 60, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in self?.applyWalkingDecay() }
+    }
+
+    func stopWalk() {
+        isWalking = false
+        walkingDecayTimer?.cancel()
+        walkingDecayTimer = nil
+    }
+
+    func dismissSpeechBubble() {
+        speechBubbleTimer?.cancel()
+        walkSpeechBubble = nil
+    }
+
+    func dismissWalkNotification(id: UUID) {
+        walkNotifications.removeAll { $0.id == id }
+    }
+
+    private func applyWalkingDecay() {
+        guard state.phase == .alive else { return }
+        let oldHp = state.hp
+        let oldHunger = state.hunger
+        state.hp = max(0, state.hp - 1)
+        state.hunger = max(0, state.hunger - 2)
+        if state.hp != oldHp || state.hunger != oldHunger { save() }
+    }
+
+    private func showWalkSpeechBubble(_ message: String) {
+        walkSpeechBubble = message
+        walkNotifications.insert(WalkNotification(message: message, timestamp: Date()), at: 0)
+        speechBubbleTimer?.cancel()
+        speechBubbleTimer = Just(())
+            .delay(for: .seconds(30), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in self?.walkSpeechBubble = nil }
     }
 
     // MARK: - Bug Game

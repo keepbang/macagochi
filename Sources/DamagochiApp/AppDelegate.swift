@@ -10,6 +10,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var popover: NSPopover?
     let viewModel = PetViewModel()
     private var stateSubscription: AnyCancellable?
+    private var walkSubscription: AnyCancellable?
+    private var walkingWindowController: WalkingWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NotificationManager.shared.requestPermission()
@@ -38,6 +40,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let button = self?.statusItem?.button else { return }
                 self?.updateMenuBarIcon(button: button, bugCount: state.activeBugs.count)
                 self?.updateTooltip(button: button)
+            }
+
+        walkingWindowController = WalkingWindowController(viewModel: viewModel)
+        walkSubscription = viewModel.$isWalking
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isWalking in
+                if isWalking {
+                    self?.walkingWindowController?.show()
+                } else {
+                    self?.walkingWindowController?.hide()
+                }
             }
     }
 
