@@ -3,11 +3,15 @@ import Foundation
 public struct HealthSystem: Sendable {
     public init() {}
 
-    public func applyDecay(to state: inout PetState, inactiveDays: Int) {
-        guard state.phase == .alive else { return }
-        state.hp = max(0, state.hp - 10 * inactiveDays)
-        state.hunger = max(0, state.hunger - 15 * inactiveDays)
-        state.mood = max(0, state.mood - 5 * inactiveDays)
+    /// 마지막 Claude Code 활동 이후 경과 시간 기반 decay
+    /// - 0~4시간: 감소 없음
+    /// - 4시간 초과부터 시간당 조금씩 감소
+    public func applyDecay(to state: inout PetState, inactiveHours: Int) {
+        guard state.phase == .alive, inactiveHours > 4 else { return }
+        let h = inactiveHours - 4
+        state.hp     = max(0, state.hp     - min(h * 1, 30))
+        state.hunger = max(0, state.hunger - min(h * 2, 50))
+        state.mood   = max(0, state.mood   - min(h * 1, 20))
     }
 
     public func applyRecovery(to state: inout PetState) {

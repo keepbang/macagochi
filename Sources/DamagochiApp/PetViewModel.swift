@@ -45,6 +45,7 @@ final class PetViewModel: ObservableObject {
     private var eventObserver: NSObjectProtocol?
     private var monitor: ClaudeSessionMonitor?
     private var deathCheckTimer: AnyCancellable?
+    private var decayTimer: AnyCancellable?
     private var notificationTimer: AnyCancellable?
     private var bugSpawnTimer: AnyCancellable?
     private var bugCleanupTimer: AnyCancellable?
@@ -135,9 +136,15 @@ final class PetViewModel: ObservableObject {
         )
         monitor?.startMonitoring()
 
+        applyDecay()
+
         deathCheckTimer = Timer.publish(every: 3600, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in self?.checkDeath() }
+
+        decayTimer = Timer.publish(every: 3600, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in self?.applyDecay() }
 
         scheduleBugSpawn()
         bugCleanupTimer = Timer.publish(every: 5, on: .main, in: .common)
@@ -151,6 +158,7 @@ final class PetViewModel: ObservableObject {
         }
         monitor?.stopMonitoring()
         deathCheckTimer?.cancel()
+        decayTimer?.cancel()
         bugSpawnTimer?.cancel()
         bugCleanupTimer?.cancel()
         save()
@@ -211,6 +219,7 @@ final class PetViewModel: ObservableObject {
         let bug = ActiveBug(type: BugType.roll())
         state.activeBugs.append(bug)
         save()
+        NotificationManager.shared.sendBugSpawned(bugType: bug.type.rawValue, emoji: bug.type.emoji)
         scheduleBugSpawn()
     }
 
@@ -251,6 +260,20 @@ final class PetViewModel: ObservableObject {
             try hookInstaller.uninstall()
             hookInstalled = false
         } catch {}
+    }
+
+    // MARK: - Reset
+
+    func resetApp() {
+        store.reset()
+        UserDefaults.standard.removeObject(forKey: "onboardingCompleted")
+        let hostHash = ProcessInfo.processInfo.hostName
+            .data(using: .utf8)
+            .map { CryptoKit.SHA256.hash(data: $0) }
+            .map { $0.prefix(8).map { String(format: "%02x", $0) }.joined() }
+            ?? "unknown"
+        state = PetState(machineId: hostHash)
+        showNotification("🔄 앱 데이터가 초기화되었습니다.", icon: "arrow.counterclockwise")
     }
 
     // MARK: - Release
@@ -353,6 +376,17 @@ final class PetViewModel: ObservableObject {
 
         if state.phase == .alive && state.hunger < 20 {
             sendSystemNotification { $0.sendHungerWarning(hunger: self.state.hunger) }
+        }
+    }
+
+    private func applyDecay() {
+        guard state.phase == .alive else { return }
+        let inactiveHours = Int(Date().timeIntervalSince(state.lastActiveAt) / 3600)
+        let oldHp = state.hp
+        let oldHunger = state.hunger
+        HealthSystem().applyDecay(to: &state, inactiveHours: inactiveHours)
+        if state.hp != oldHp || state.hunger != oldHunger {
+            save()
         }
     }
 
