@@ -22,14 +22,15 @@ struct InventoryView: View {
             Text("장비")
                 .font(.headline)
 
-            HStack(spacing: 12) {
+            HStack(spacing: 0) {
                 ForEach(EquipmentSlot.allCases, id: \.self) { slot in
+                    Spacer()
                     slotView(slot)
+                    Spacer()
                 }
             }
-            .padding(.bottom, 6)
         }
-        .padding(.top, 8)
+        .padding(.vertical, 8)
     }
 
     private func slotView(_ slot: EquipmentSlot) -> some View {
@@ -37,11 +38,11 @@ struct InventoryView: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 6)
                     .fill(.quaternary)
-                    .frame(width: 40, height: 40)
+                    .frame(width: 36, height: 36)
 
                 if let item = viewModel.equippedItem(for: slot) {
                     Text(rarityEmoji(item.rarity))
-                        .font(.title2)
+                        .font(.body)
                 } else {
                     Image(systemName: slotIcon(slot))
                         .foregroundStyle(.tertiary)

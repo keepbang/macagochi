@@ -36,9 +36,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
                 guard let button = self?.statusItem?.button else { return }
-                self?.updateMenuBarIcon(button: button)
+                self?.updateMenuBarIcon(button: button, bugCount: state.activeBugs.count)
                 self?.updateTooltip(button: button)
-                self?.updateBugBadge(button: button, bugCount: state.activeBugs.count)
             }
     }
 
@@ -65,34 +64,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let name = state.name ?? state.species.flatMap { id in
                 Species.allSpecies.first(where: { $0.id == id })?.name
             } ?? "펫"
-            button.toolTip = "Damagochi — \(name) Lv.\(state.level)"
+            let xpNeeded = XPEngine().xpNeededForLevel(state.level + 1)
+            button.toolTip = "Damagochi — \(name) Lv.\(state.level) (XP: \(state.xp)/\(xpNeeded))"
         case .dead:
             button.toolTip = "Damagochi — 사망"
         }
     }
 
-    private func updateBugBadge(button: NSStatusBarButton, bugCount: Int) {
-        if bugCount > 0 {
-            button.appearsDisabled = false
-            let badge = NSTextField(labelWithString: "\(bugCount)")
-            badge.font = .systemFont(ofSize: 8, weight: .bold)
-            badge.textColor = .white
-            badge.backgroundColor = .systemRed
-            badge.isBordered = false
-            badge.isEditable = false
-            button.toolTip = (button.toolTip ?? "") + " 🐛×\(bugCount)"
-        }
-    }
-
-    private func updateMenuBarIcon(button: NSStatusBarButton) {
+    private func updateMenuBarIcon(button: NSStatusBarButton, bugCount: Int = 0) {
         let sprite = SpriteSheet.menuBarIcon(
             phase: viewModel.state.phase,
             stage: viewModel.state.stage
         )
-        let size = CGFloat(sprite.width) * 2.0
+        let scale: CGFloat = 2.0
+        let size = CGFloat(sprite.width) * scale
         let image = NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
             guard let context = NSGraphicsContext.current?.cgContext else { return false }
-            let scale: CGFloat = 2.0
             for row in 0..<sprite.height {
                 for col in 0..<sprite.width {
                     let px = sprite.pixels[row][col]
@@ -110,6 +97,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     )
                     context.fill(pixelRect)
                 }
+            }
+            if bugCount > 0 {
+                let dotSize: CGFloat = 6.0
+                let dotRect = CGRect(x: size - dotSize, y: size - dotSize, width: dotSize, height: dotSize)
+                context.setFillColor(NSColor.systemRed.cgColor)
+                context.fillEllipse(in: dotRect)
             }
             return true
         }

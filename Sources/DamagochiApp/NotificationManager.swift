@@ -73,6 +73,12 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         send(title: "스트릭 달성! 🎉", body: "\(days)일 연속 코딩 달성! 특별 장비를 획득했습니다!")
     }
 
+    func sendBugSpawned(bugType: String, emoji: String) {
+        send(title: "버그가 나타났어요! \(emoji)",
+             body: "\(bugType) 버그를 잡으러 가세요! 빨리 잡지 않으면 도망가요 🏃",
+             categoryId: "bug_spawn")
+    }
+
     func scheduleStreakWarning(streakDays: Int) {
         center.removePendingNotificationRequests(withIdentifiers: ["streak-warning"])
         guard streakDays > 0 else { return }

@@ -36,8 +36,8 @@ public struct PersonalityTracker: Sendable {
     }
 
     public func determineMbtiGroup(from scores: MbtiScores) -> MbtiGroup {
-        let n = scores.intuition >= 0
-        let t = scores.thinking >= 0
+        let n = scores.intuition > 0
+        let t = scores.thinking > 0
 
         if n && t { return .nt }
         if n && !t { return .nf }
@@ -46,10 +46,10 @@ public struct PersonalityTracker: Sendable {
     }
 
     public func determineMbtiString(from scores: MbtiScores) -> String {
-        let e = scores.extroversion >= 0 ? "E" : "I"
-        let n = scores.intuition >= 0 ? "N" : "S"
-        let t = scores.thinking >= 0 ? "T" : "F"
-        let j = scores.judging >= 0 ? "J" : "P"
+        let e = scores.extroversion > 0 ? "E" : "I"
+        let n = scores.intuition > 0 ? "N" : "S"
+        let t = scores.thinking > 0 ? "T" : "F"
+        let j = scores.judging > 0 ? "J" : "P"
         return e + n + t + j
     }
 }

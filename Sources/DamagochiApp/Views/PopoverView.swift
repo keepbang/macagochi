@@ -161,8 +161,11 @@ struct PopoverView: View {
     private var statusBars: some View {
         VStack(spacing: 3) {
             statusBar(label: "HP", value: viewModel.state.hp, color: .red)
+                .help("체력: 활동하면 회복됩니다. 0이 되면 사망합니다.")
             statusBar(label: "배고픔", value: viewModel.state.hunger, color: .orange)
+                .help("배고픔: Claude Code 사용 시 증가합니다. 낮아지면 펫이 약해집니다.")
             statusBar(label: "기분", value: viewModel.state.mood, color: .blue)
+                .help("기분: 버그를 잡거나 활발하게 활동하면 올라갑니다.")
         }
     }
 
@@ -202,6 +205,7 @@ struct PopoverView: View {
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
+            .help("경험치: 프롬프트 입력, 툴 사용, 버그 잡기로 획득합니다. 100XP로 부화, 이후 레벨업합니다.")
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
@@ -221,12 +225,16 @@ struct PopoverView: View {
     private var statsRow: some View {
         HStack {
             statItem(icon: "text.bubble", count: viewModel.state.totalPrompts)
+                .help("총 프롬프트 입력 횟수")
             Spacer()
             statItem(icon: "wrench", count: viewModel.state.totalToolUses)
+                .help("총 툴 사용 횟수 (Read, Edit, Grep 등)")
             Spacer()
             statItem(icon: "play.circle", count: viewModel.state.totalSessions)
+                .help("총 Claude Code 세션 시작 횟수")
             Spacer()
             streakItem
+                .help("연속 코딩 일수. 매일 Claude Code를 사용하면 스트릭이 유지됩니다.")
         }
         .font(.caption)
         .padding(.top, 2)
