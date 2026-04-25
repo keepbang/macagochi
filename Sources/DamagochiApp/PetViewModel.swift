@@ -89,14 +89,22 @@ final class PetViewModel: ObservableObject {
         }
     }
 
+    var displayXp: Int {
+        state.phase == .egg ? state.totalXp : state.xp
+    }
+
     var xpProgress: Double {
+        if state.phase == .egg {
+            return min(1.0, Double(state.totalXp) / 100.0)
+        }
         let needed = XPEngine().xpNeededForLevel(state.level + 1)
         guard needed > 0 else { return 1 }
         return min(1.0, Double(state.xp) / Double(needed))
     }
 
     var xpNeededForNextLevel: Int {
-        XPEngine().xpNeededForLevel(state.level + 1)
+        if state.phase == .egg { return 100 }
+        return XPEngine().xpNeededForLevel(state.level + 1)
     }
 
     init() {

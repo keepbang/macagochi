@@ -208,7 +208,7 @@ struct PopoverView: View {
                 Text("XP")
                     .font(.caption2.bold())
                 Spacer()
-                Text("\(viewModel.state.xp) / \(viewModel.xpNeededForNextLevel)")
+                Text("\(viewModel.displayXp) / \(viewModel.xpNeededForNextLevel)")
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
