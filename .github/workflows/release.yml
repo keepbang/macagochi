@@ -47,16 +47,6 @@ jobs:
           echo "tag=v$NEW" >> $GITHUB_OUTPUT
           echo "current=$CURRENT" >> $GITHUB_OUTPUT
 
-      - name: 워크플로우 실행 이름 업데이트
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh api \
-            --method PATCH \
-            -H "Accept: application/vnd.github+json" \
-            /repos/${{ github.repository }}/actions/runs/${{ github.run_id }} \
-            -f display_title="Release ${{ steps.version.outputs.tag }}"
-
       - name: Info.plist 버전 업데이트
         run: |
           VERSION="${{ steps.version.outputs.new }}"
