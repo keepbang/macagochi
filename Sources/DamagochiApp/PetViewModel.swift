@@ -56,12 +56,16 @@ final class PetViewModel: ObservableObject {
     private var notificationTimer: AnyCancellable?
     private var bugSpawnTimer: AnyCancellable?
     private var bugCleanupTimer: AnyCancellable?
+    @Published var latestVersion: String?
+    @Published var isCheckingUpdate: Bool = false
     @Published var isWalking: Bool = false
     @Published var walkSpeechBubble: String?
     @Published var walkNotifications: [WalkNotification] = []
+    @Published var petSpeechBubble: String?
     @Published var bugXPPopup: String?
     private var walkingDecayTimer: AnyCancellable?
     private var speechBubbleTimer: AnyCancellable?
+    private var petSpeechBubbleTimer: AnyCancellable?
     private var bugPopupTimer: AnyCancellable?
 
     var currentFrames: [PixelSprite] {
@@ -234,6 +238,7 @@ final class PetViewModel: ObservableObject {
     private func showWalkSpeechBubble(_ message: String) {
         walkSpeechBubble = message
         walkNotifications.insert(WalkNotification(message: message, timestamp: Date()), at: 0)
+        if walkNotifications.count > 50 { walkNotifications = Array(walkNotifications.prefix(50)) }
         speechBubbleTimer?.cancel()
         speechBubbleTimer = Just(())
             .delay(for: .seconds(30), scheduler: DispatchQueue.main)
@@ -501,6 +506,45 @@ final class PetViewModel: ObservableObject {
         notificationTimer = Just(())
             .delay(for: .seconds(3), scheduler: DispatchQueue.main)
             .sink { [weak self] _ in self?.notification = nil }
+
+        walkNotifications.insert(WalkNotification(message: message, timestamp: Date()), at: 0)
+        if walkNotifications.count > 50 { walkNotifications = Array(walkNotifications.prefix(50)) }
+
+        petSpeechBubble = message
+        petSpeechBubbleTimer?.cancel()
+        petSpeechBubbleTimer = Just(())
+            .delay(for: .seconds(5), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in self?.petSpeechBubble = nil }
+    }
+
+    // MARK: - Update Check
+
+    func checkForUpdate() {
+        guard !isCheckingUpdate else { return }
+        isCheckingUpdate = true
+        let url = URL(string: "https://api.github.com/repos/keepbang/damagochi/releases/latest")!
+        URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
+            Task { @MainActor [weak self] in
+                self?.isCheckingUpdate = false
+                guard let data,
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let tag = json["tag_name"] as? String else { return }
+                let version = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
+                self?.latestVersion = version
+            }
+        }.resume()
+    }
+
+    var hasUpdate: Bool {
+        guard let latest = latestVersion else { return false }
+        let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
+        return latest.compare(current, options: .numeric) == .orderedDescending
+    }
+
+    func openReleasePage() {
+        if let url = URL(string: "https://github.com/keepbang/damagochi/releases/latest") {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     private func save() {

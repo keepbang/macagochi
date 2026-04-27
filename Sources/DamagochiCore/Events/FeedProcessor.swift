@@ -104,9 +104,11 @@ public struct FeedProcessor: Sendable {
 
             if levelsGained > 0 {
                 for lv in (prevLevel + 1)...(prevLevel + levelsGained) {
-                    let item = equipmentDropper.dropEquipment(forLevel: lv)
-                    state.inventory.append(item)
-                    droppedEquipment.append(item)
+                    let item = equipmentDropper.dropEquipment(forLevel: lv, excluding: state.inventory.map(\.id))
+                    if !state.inventory.contains(where: { $0.id == item.id }) {
+                        state.inventory.append(item)
+                        droppedEquipment.append(item)
+                    }
                 }
             }
 
@@ -163,8 +165,10 @@ public struct FeedProcessor: Sendable {
             let milestoneKey = "streak_milestone_\(days)"
             if state.streakDays == days && !state.unlockedAchievements.contains(milestoneKey) {
                 state.unlockedAchievements.append(milestoneKey)
-                let item = equipmentDropper.dropEquipment(forRarity: rarity)
-                state.inventory.append(item)
+                let item = equipmentDropper.dropEquipment(forRarity: rarity, excluding: state.inventory.map(\.id))
+                if !state.inventory.contains(where: { $0.id == item.id }) {
+                    state.inventory.append(item)
+                }
             }
         }
     }
