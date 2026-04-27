@@ -159,7 +159,7 @@ struct PopoverView: View {
                 .fill(isEvent ? AnyShapeStyle(.thinMaterial) : AnyShapeStyle(Color.clear))
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)
-                        .stroke(isEvent ? Color.separator : Color.clear, lineWidth: 0.5)
+                        .stroke(isEvent ? Color(nsColor: .separatorColor) : Color.clear, lineWidth: 0.5)
                 )
         )
         .animation(.easeInOut(duration: 0.2), value: isEvent)
