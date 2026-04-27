@@ -3,8 +3,11 @@ import Foundation
 public struct InventoryManager: Sendable {
     public init() {}
 
-    public func addToInventory(item: Equipment, state: inout PetState) {
+    @discardableResult
+    public func addToInventory(item: Equipment, state: inout PetState) -> Bool {
+        guard !state.inventory.contains(where: { $0.id == item.id }) else { return false }
         state.inventory.append(item)
+        return true
     }
 
     public func equip(itemId: String, state: inout PetState) -> Bool {

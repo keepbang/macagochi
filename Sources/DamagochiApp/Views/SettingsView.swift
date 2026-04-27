@@ -15,6 +15,27 @@ struct SettingsView: View {
                 Text("v\(appVersion)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                if viewModel.isCheckingUpdate {
+                    ProgressView()
+                        .scaleEffect(0.6)
+                        .padding(.leading, 4)
+                } else if viewModel.hasUpdate, let latest = viewModel.latestVersion {
+                    Button("v\(latest) 업데이트") {
+                        viewModel.openReleasePage()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.mini)
+                    .tint(.green)
+                    .padding(.leading, 4)
+                } else {
+                    Button(action: { viewModel.checkForUpdate() }) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 4)
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -35,6 +56,7 @@ struct SettingsView: View {
                 .padding(12)
             }
         }
+        .onAppear { viewModel.checkForUpdate() }
         .confirmationDialog(
             "펫을 방생하시겠습니까?",
             isPresented: $showReleaseConfirm,
@@ -179,6 +201,24 @@ struct SettingsView: View {
             infoRow("이름", value: "Damagochi")
             infoRow("버전", value: appVersion)
             infoRow("플랫폼", value: "macOS 14+")
+
+            if viewModel.hasUpdate, let latest = viewModel.latestVersion {
+                HStack {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .foregroundStyle(.green)
+                        .font(.caption)
+                    Text("v\(latest) 업데이트 가능")
+                        .font(.caption)
+                        .foregroundStyle(.green)
+                    Spacer()
+                    Button("업데이트") {
+                        viewModel.openReleasePage()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.mini)
+                    .tint(.green)
+                }
+            }
 
             HStack {
                 Spacer()

@@ -49,9 +49,8 @@ struct NotificationsView: View {
 
     private func notificationRow(_ item: WalkNotification) -> some View {
         HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "figure.walk")
+            Text(notificationIcon(item.message))
                 .font(.caption)
-                .foregroundStyle(.blue)
                 .frame(width: 16)
                 .padding(.top, 1)
 
@@ -75,6 +74,18 @@ struct NotificationsView: View {
         }
         .padding(8)
         .background(RoundedRectangle(cornerRadius: 8).fill(.quaternary.opacity(0.3)))
+    }
+
+    private func notificationIcon(_ message: String) -> String {
+        if message.contains("레벨") { return "⬆️" }
+        if message.contains("부화") { return "🐣" }
+        if message.contains("장비") || message.contains("획득") { return "🎁" }
+        if message.contains("업적") || message.contains("달성") { return "🏆" }
+        if message.contains("스트릭") || message.contains("연속") { return "🔥" }
+        if message.contains("방생") { return "🕊️" }
+        if message.contains("사망") { return "💀" }
+        if message.contains("작업") { return "✅" }
+        return "💬"
     }
 
     private func relativeTime(_ date: Date) -> String {

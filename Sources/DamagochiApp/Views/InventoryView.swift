@@ -12,120 +12,138 @@ struct InventoryView: View {
             if viewModel.state.inventory.isEmpty {
                 emptyState
             } else {
-                equipmentList
+                inventoryContent
             }
         }
     }
 
+    // MARK: - Header
+
     private var header: some View {
-        VStack(spacing: 4) {
+        HStack {
             Text("장비")
                 .font(.headline)
-
-            HStack(spacing: 0) {
-                ForEach(EquipmentSlot.allCases, id: \.self) { slot in
-                    Spacer()
-                    slotView(slot)
-                    Spacer()
-                }
-            }
+            Spacer()
+            Text("\(viewModel.state.inventory.count)개 보유")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
         }
+        .padding(.horizontal, 12)
         .padding(.vertical, 8)
     }
 
-    private func slotView(_ slot: EquipmentSlot) -> some View {
-        VStack(spacing: 2) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(.quaternary)
-                    .frame(width: 36, height: 36)
+    // MARK: - Equipped Slots
 
-                if let item = viewModel.equippedItem(for: slot) {
-                    Text(rarityEmoji(item.rarity))
-                        .font(.body)
-                } else {
-                    Image(systemName: slotIcon(slot))
-                        .foregroundStyle(.tertiary)
-                }
+    private var inventoryContent: some View {
+        ScrollView {
+            VStack(spacing: 10) {
+                equippedSection
+                Divider()
+                allItemsSection
             }
-
-            Text(slotLabel(slot))
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+            .padding(10)
         }
     }
 
-    private var equipmentList: some View {
-        ScrollView {
+    private var equippedSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("장착 중")
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 8) {
+                ForEach(EquipmentSlot.allCases, id: \.self) { slot in
+                    equippedSlotCard(slot)
+                }
+            }
+        }
+    }
+
+    private func equippedSlotCard(_ slot: EquipmentSlot) -> some View {
+        let item = viewModel.equippedItem(for: slot)
+        return VStack(spacing: 4) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(item != nil ? rarityColor(item!.rarity).opacity(0.15) : Color.secondary.opacity(0.08))
+                    .frame(height: 44)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(item != nil ? rarityColor(item!.rarity).opacity(0.4) : Color.clear, lineWidth: 1)
+                    )
+
+                if let item {
+                    VStack(spacing: 2) {
+                        Text(rarityEmoji(item.rarity))
+                            .font(.title3)
+                        Text(item.name)
+                            .font(.system(size: 8))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 2)
+                } else {
+                    VStack(spacing: 2) {
+                        Image(systemName: slotIcon(slot))
+                            .font(.system(size: 14))
+                            .foregroundStyle(.tertiary)
+                        Text(slotLabel(slot))
+                            .font(.system(size: 8))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+            }
+
+            if item != nil {
+                Button("해제") {
+                    viewModel.unequip(slot: slot)
+                }
+                .font(.system(size: 9))
+                .foregroundStyle(.red)
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var allItemsSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("인벤토리")
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+
             LazyVStack(spacing: 4) {
                 ForEach(viewModel.state.inventory) { item in
-                    equipmentRow(item)
+                    ItemRow(item: item, isEquipped: isItemEquipped(item)) {
+                        if isItemEquipped(item) {
+                            viewModel.unequip(slot: item.slot)
+                        } else {
+                            viewModel.equip(itemId: item.id)
+                        }
+                    }
                 }
             }
-            .padding(8)
         }
     }
 
-    private func equipmentRow(_ item: Equipment) -> some View {
-        let isEquipped = isItemEquipped(item)
-
-        return HStack(spacing: 8) {
-            Text(rarityEmoji(item.rarity))
-                .font(.title3)
-
-            VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: 4) {
-                    Text(item.name)
-                        .font(.caption.bold())
-                    Text("[\(slotLabel(item.slot))]")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                Text(item.description)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-
-            Spacer()
-
-            if isEquipped {
-                Button("해제") {
-                    viewModel.unequip(slot: item.slot)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.mini)
-                .tint(.red)
-            } else {
-                Button("장착") {
-                    viewModel.equip(itemId: item.id)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.mini)
-            }
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(isEquipped ? Color.blue.opacity(0.08) : Color.clear)
-        )
-    }
+    // MARK: - Empty State
 
     private var emptyState: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 10) {
             Spacer()
             Image(systemName: "bag")
-                .font(.largeTitle)
-                .foregroundStyle(.tertiary)
+                .font(.system(size: 32))
+                .foregroundStyle(.quaternary)
             Text("장비가 없습니다")
-                .font(.caption)
+                .font(.caption.bold())
                 .foregroundStyle(.secondary)
             Text("레벨업 시 장비를 획득할 수 있어요")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
             Spacer()
         }
+        .padding()
     }
 
     // MARK: - Helpers
@@ -143,7 +161,16 @@ struct InventoryView: View {
         case .common:    return "⚪"
         case .rare:      return "🔵"
         case .legendary: return "🟡"
-        case .mythic:    return "🟣"
+        case .mythic:    return "🌈"
+        }
+    }
+
+    private func rarityColor(_ rarity: Rarity) -> Color {
+        switch rarity {
+        case .common:    return .gray
+        case .rare:      return .blue
+        case .legendary: return .yellow
+        case .mythic:    return .purple
         }
     }
 
@@ -157,6 +184,93 @@ struct InventoryView: View {
 
     private func slotLabel(_ slot: EquipmentSlot) -> String {
         switch slot {
+        case .head:   return "머리"
+        case .hand:   return "손"
+        case .effect: return "효과"
+        }
+    }
+}
+
+// MARK: - Item Row
+
+private struct ItemRow: View {
+    let item: Equipment
+    let isEquipped: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(rarityColor.opacity(0.12))
+                    .frame(width: 32, height: 32)
+                Text(rarityEmoji)
+                    .font(.body)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Text(item.name)
+                        .font(.caption.bold())
+                    Text("[\(slotLabel)]")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.secondary)
+                    if isEquipped {
+                        Text("장착")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(rarityColor, in: Capsule())
+                    }
+                }
+                Text(item.description)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Button(isEquipped ? "해제" : "장착") {
+                onToggle()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.mini)
+            .tint(isEquipped ? .red : rarityColor)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(isEquipped ? rarityColor.opacity(0.06) : Color.clear)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(isEquipped ? rarityColor.opacity(0.3) : Color.clear, lineWidth: 0.5)
+                )
+        )
+    }
+
+    private var rarityEmoji: String {
+        switch item.rarity {
+        case .common:    return "⚪"
+        case .rare:      return "🔵"
+        case .legendary: return "🟡"
+        case .mythic:    return "🌈"
+        }
+    }
+
+    private var rarityColor: Color {
+        switch item.rarity {
+        case .common:    return .gray
+        case .rare:      return .blue
+        case .legendary: return .orange
+        case .mythic:    return .purple
+        }
+    }
+
+    private var slotLabel: String {
+        switch item.slot {
         case .head:   return "머리"
         case .hand:   return "손"
         case .effect: return "효과"

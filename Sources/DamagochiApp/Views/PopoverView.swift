@@ -133,14 +133,36 @@ struct PopoverView: View {
     // MARK: - Speech Bubble
 
     private var speechBubble: some View {
-        HStack {
+        let text = viewModel.petSpeechBubble ?? viewModel.statusMessage
+        let isEvent = viewModel.petSpeechBubble != nil
+        return HStack(alignment: .top, spacing: 6) {
             Text("💬")
-                .font(.caption2)
-            Text(viewModel.statusMessage)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(isEvent ? .primary : .secondary)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer()
+            if isEvent {
+                Button(action: { viewModel.petSpeechBubble = nil }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.tertiary)
+                }
+                .buttonStyle(.plain)
+            }
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(isEvent ? AnyShapeStyle(.thinMaterial) : AnyShapeStyle(Color.clear))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(isEvent ? Color.separator : Color.clear, lineWidth: 0.5)
+                )
+        )
+        .animation(.easeInOut(duration: 0.2), value: isEvent)
     }
 
     // MARK: - Name & Level
