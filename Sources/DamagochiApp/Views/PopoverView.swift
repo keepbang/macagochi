@@ -5,6 +5,7 @@ import DamagochiRenderer
 struct PopoverView: View {
     @ObservedObject var viewModel: PetViewModel
     @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "onboardingCompleted")
+    @State private var statsTooltip: String? = nil
 
     var body: some View {
         Group {
@@ -252,21 +253,30 @@ struct PopoverView: View {
     // MARK: - Stats Row
 
     private var statsRow: some View {
-        HStack {
-            statItem(icon: "text.bubble", count: viewModel.state.totalPrompts)
-                .help("총 프롬프트 입력 횟수")
-            Spacer()
-            statItem(icon: "wrench", count: viewModel.state.totalToolUses)
-                .help("총 툴 사용 횟수 (Read, Edit, Grep 등)")
-            Spacer()
-            statItem(icon: "play.circle", count: viewModel.state.totalSessions)
-                .help("총 Claude Code 세션 시작 횟수")
-            Spacer()
-            streakItem
-                .help("연속 코딩 일수. 매일 Claude Code를 사용하면 스트릭이 유지됩니다.")
+        VStack(spacing: 4) {
+            HStack {
+                statItem(icon: "text.bubble", count: viewModel.state.totalPrompts)
+                    .onHover { statsTooltip = $0 ? "총 프롬프트 입력 횟수" : nil }
+                Spacer()
+                statItem(icon: "wrench", count: viewModel.state.totalToolUses)
+                    .onHover { statsTooltip = $0 ? "툴 사용 횟수 (Read, Edit, Grep 등)" : nil }
+                Spacer()
+                statItem(icon: "play.circle", count: viewModel.state.totalSessions)
+                    .onHover { statsTooltip = $0 ? "Claude Code 세션 시작 횟수" : nil }
+                Spacer()
+                streakItem
+                    .onHover { statsTooltip = $0 ? "연속 코딩 일수 (매일 사용 시 유지)" : nil }
+            }
+            .font(.caption)
+            .padding(.top, 2)
+
+            Text(statsTooltip ?? "")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .opacity(statsTooltip != nil ? 1 : 0)
+                .animation(.easeInOut(duration: 0.15), value: statsTooltip)
         }
-        .font(.caption)
-        .padding(.top, 2)
     }
 
     private var streakItem: some View {
