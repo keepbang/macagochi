@@ -44,7 +44,7 @@ open /Applications/Damagochi.app
 ### 업데이트
 
 ```bash
-brew update && brew upgrade --cask damagochi
+brew upgrade --cask damagochi && osascript -e 'quit app "Damagochi"' 2>/dev/null; sleep 1 && open -a Damagochi
 ```
 
 ### 수동 설치 (개발자용)
