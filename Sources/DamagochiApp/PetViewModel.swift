@@ -32,6 +32,7 @@ struct WalkNotification: Identifiable {
     let id = UUID()
     let message: String
     let timestamp: Date
+    var isRead: Bool = false
 }
 
 @MainActor
@@ -229,6 +230,12 @@ final class PetViewModel: ObservableObject {
         walkNotifications.removeAll { $0.id == id }
     }
 
+    func markWalkNotificationAsRead(id: UUID) {
+        if let idx = walkNotifications.firstIndex(where: { $0.id == id }) {
+            walkNotifications[idx].isRead = true
+        }
+    }
+
     private func applyWalkingDecay() {
         guard state.phase == .alive else { return }
         let oldHp = state.hp
@@ -263,7 +270,7 @@ final class PetViewModel: ObservableObject {
             if result.newLevel > state.level {
                 state.level = result.newLevel
                 state.xp = result.remainingXp
-                showNotification("⬆️ 레벨 \(state.level) 달성!", icon: "arrow.up.circle.fill")
+                showNotification("레벨 \(state.level) 달성!", icon: "arrow.up.circle.fill")
             } else {
                 state.xp = result.remainingXp
             }
@@ -277,7 +284,7 @@ final class PetViewModel: ObservableObject {
         let newAchievements = checker.check(state: state)
         for a in newAchievements {
             state.unlockedAchievements.append(a.id)
-            showNotification("🏆 \(a.name) 달성!", icon: "trophy.fill")
+            showNotification("\(a.name) 달성!", icon: "trophy.fill")
         }
 
         bugXPPopup = "+\(xp) XP \(bug.type.emoji)"
@@ -361,7 +368,7 @@ final class PetViewModel: ObservableObject {
             .map { $0.prefix(8).map { String(format: "%02x", $0) }.joined() }
             ?? "unknown"
         state = PetState(machineId: hostHash)
-        showNotification("🔄 앱 데이터가 초기화되었습니다.", icon: "arrow.counterclockwise")
+        showNotification("앱 데이터가 초기화되었습니다.", icon: "arrow.counterclockwise")
     }
 
     // MARK: - Release
@@ -372,12 +379,16 @@ final class PetViewModel: ObservableObject {
         let previousEntries = state.graveyardEntries
         let previousDeathCount = state.deathCount
         let previousAchievements = state.unlockedAchievements
+        let previousInventory = state.inventory
+        let previousEquippedItems = state.equippedItems
         state = PetState(machineId: state.machineId)
         state.graveyardEntries = previousEntries + [entry]
         state.deathCount = previousDeathCount
         state.unlockedAchievements = previousAchievements
+        state.inventory = previousInventory
+        state.equippedItems = previousEquippedItems
         save()
-        showNotification("🕊️ 펫을 방생했습니다. 새 알이 생겼어요!", icon: "bird.fill")
+        showNotification("펫을 방생했습니다. 새 알이 생겼어요!", icon: "bird.fill")
     }
 
     // MARK: - Rebirth
@@ -393,7 +404,7 @@ final class PetViewModel: ObservableObject {
         state.deathCount = previousDeathCount + 1
         state.unlockedAchievements = previousAchievements
         save()
-        showNotification("🔄 새로운 알이 나타났습니다!", icon: "arrow.counterclockwise.circle.fill")
+        showNotification("새로운 알이 나타났습니다!", icon: "arrow.counterclockwise.circle.fill")
     }
 
     // MARK: - Private
@@ -426,12 +437,12 @@ final class PetViewModel: ObservableObject {
         if result.streakUpdated && result.newStreakDays > 0 {
             let milestones = [7, 30, 100]
             if milestones.contains(result.newStreakDays) {
-                showNotification("🎉 \(result.newStreakDays)일 스트릭 달성!", icon: "flame.fill")
+                showNotification("\(result.newStreakDays)일 스트릭 달성!", icon: "flame.fill")
                 sendSystemNotification { $0.sendStreakMilestone(days: result.newStreakDays) }
             } else if result.newStreakDays == 1 {
-                showNotification("🔥 코딩 스트릭 시작!", icon: "flame")
+                showNotification("코딩 스트릭 시작!", icon: "flame")
             } else if result.newStreakDays > 1 {
-                showNotification("🔥 \(result.newStreakDays)일 연속 코딩!", icon: "flame")
+                showNotification("\(result.newStreakDays)일 연속 코딩!", icon: "flame")
             }
             sendSystemNotification { $0.scheduleStreakWarning(streakDays: result.newStreakDays) }
         }
@@ -443,17 +454,17 @@ final class PetViewModel: ObservableObject {
             let speciesName = speciesEntry?.name ?? "펫"
             let rarityLabel: String
             switch speciesEntry?.rarity {
-            case .common:    rarityLabel = "⬜ 커먼"
-            case .rare:      rarityLabel = "🔵 레어"
-            case .legendary: rarityLabel = "🟡 레전더리"
-            case .mythic:    rarityLabel = "🌈 미식"
+            case .common:    rarityLabel = "커먼"
+            case .rare:      rarityLabel = "레어"
+            case .legendary: rarityLabel = "레전더리"
+            case .mythic:    rarityLabel = "미식"
             case nil:        rarityLabel = ""
             }
             let suffix = rarityLabel.isEmpty ? "" : " [\(rarityLabel)]"
-            showNotification("🐣 \(speciesName)\(suffix) 부화!", icon: "sparkles")
+            showNotification("\(speciesName)\(suffix) 부화!", icon: "sparkles")
             sendSystemNotification { $0.sendHatched(speciesName: speciesName) }
         } else if state.level > oldLevel {
-            showNotification("⬆️ 레벨 \(state.level) 달성!", icon: "arrow.up.circle.fill")
+            showNotification("레벨 \(state.level) 달성!", icon: "arrow.up.circle.fill")
             sendSystemNotification { $0.sendLevelUp(level: self.state.level) }
         }
 
@@ -488,7 +499,7 @@ final class PetViewModel: ObservableObject {
             let entry = deathChecker.processDeath(state: &state)
             state.graveyardEntries.append(entry)
             save()
-            showNotification("💀 펫이 사망했습니다...", icon: "heart.slash.fill")
+            showNotification("펫이 사망했습니다...", icon: "heart.slash.fill")
             sendSystemNotification { $0.sendDeath() }
             return
         }
