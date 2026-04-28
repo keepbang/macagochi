@@ -5,6 +5,7 @@ struct SettingsView: View {
     @ObservedObject var viewModel: PetViewModel
     @State private var showReleaseConfirm = false
     @State private var showResetConfirm = false
+    @State private var commandCopied = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -20,13 +21,10 @@ struct SettingsView: View {
                         .scaleEffect(0.6)
                         .padding(.leading, 4)
                 } else if viewModel.hasUpdate, let latest = viewModel.latestVersion {
-                    Button("v\(latest) 업데이트") {
-                        viewModel.performBrewUpdate()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.mini)
-                    .tint(.green)
-                    .padding(.leading, 4)
+                    Text("v\(latest) 업데이트 가능")
+                        .font(.caption.bold())
+                        .foregroundStyle(.green)
+                        .padding(.leading, 4)
                 } else {
                     Button(action: { viewModel.checkForUpdate() }) {
                         Image(systemName: "arrow.clockwise")
@@ -223,20 +221,32 @@ struct SettingsView: View {
                     Spacer()
                 }
             } else if viewModel.hasUpdate, let latest = viewModel.latestVersion {
-                HStack {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .foregroundStyle(.green)
-                        .font(.caption)
-                    Text("v\(latest) 업데이트 가능")
-                        .font(.caption)
-                        .foregroundStyle(.green)
-                    Spacer()
-                    Button("업데이트") {
-                        viewModel.performBrewUpdate()
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .foregroundStyle(.green)
+                            .font(.caption)
+                        Text("v\(latest) 업데이트 가능 — 터미널에서 실행하세요")
+                            .font(.caption)
+                            .foregroundStyle(.green)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.mini)
-                    .tint(.green)
+                    HStack(spacing: 6) {
+                        Text(brewUpdateCommand)
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(6)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(RoundedRectangle(cornerRadius: 5).fill(.black.opacity(0.08)))
+                        Button(action: copyCommand) {
+                            Image(systemName: commandCopied ? "checkmark" : "doc.on.doc")
+                                .font(.caption)
+                                .foregroundStyle(commandCopied ? .green : .secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .frame(width: 24)
+                    }
                 }
             }
 
@@ -287,6 +297,19 @@ struct SettingsView: View {
     }
 
     // MARK: - Helpers
+
+    private var brewUpdateCommand: String {
+        "brew upgrade --cask keepbang/tap/damagochi && osascript -e 'quit app \"Damagochi\"' 2>/dev/null; sleep 1 && open -a Damagochi"
+    }
+
+    private func copyCommand() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(brewUpdateCommand, forType: .string)
+        commandCopied = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            commandCopied = false
+        }
+    }
 
     private func infoRow(_ label: String, value: String) -> some View {
         HStack {
