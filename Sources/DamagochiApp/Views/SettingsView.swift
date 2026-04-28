@@ -263,7 +263,7 @@ struct SettingsView: View {
     // MARK: - Helpers
 
     private var brewUpdateCommand: String {
-        "brew upgrade --cask damagochi && osascript -e 'quit app "Damagochi"' 2>/dev/null; sleep 1 && open -a Damagochi"
+        "brew upgrade --cask damagochi && osascript -e 'quit app \"Damagochi\"' 2>/dev/null; sleep 1 && open -a Damagochi"
     }
 
     private func copyCommand() {
