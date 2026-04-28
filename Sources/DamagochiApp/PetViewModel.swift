@@ -428,6 +428,8 @@ final class PetViewModel: ObservableObject {
             if milestones.contains(result.newStreakDays) {
                 showNotification("🎉 \(result.newStreakDays)일 스트릭 달성!", icon: "flame.fill")
                 sendSystemNotification { $0.sendStreakMilestone(days: result.newStreakDays) }
+            } else if result.newStreakDays == 1 {
+                showNotification("🔥 코딩 스트릭 시작!", icon: "flame")
             } else if result.newStreakDays > 1 {
                 showNotification("🔥 \(result.newStreakDays)일 연속 코딩!", icon: "flame")
             }

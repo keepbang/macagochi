@@ -63,9 +63,9 @@ public struct FeedProcessor: Sendable {
         var streakUpdated = false
         var newStreakDays = 0
         if case .sessionStart = event.kind {
-            let prevStreak = state.streakDays
+            let prevLastDate = state.lastStreakDate
             updateStreak(state: &state, now: event.timestamp)
-            if state.streakDays != prevStreak || state.lastStreakDate != nil {
+            if state.lastStreakDate != prevLastDate {
                 streakUpdated = true
                 newStreakDays = state.streakDays
             }
