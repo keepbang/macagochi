@@ -198,6 +198,44 @@ final class IntegrationTests: XCTestCase {
         XCTAssertEqual(merged.levelsGained, 1)
     }
 
+    // MARK: - Release Flow
+
+    func testReleasePreservesEquipment() {
+        var state = PetState(machineId: "test-release")
+
+        // Hatch and gain equipment
+        for _ in 0..<20 {
+            processor.process(event: BehaviorEvent(kind: .prompt), state: &state)
+        }
+        XCTAssertEqual(state.phase, .alive)
+
+        // Level up to acquire equipment
+        for _ in 0..<20 {
+            processor.process(event: BehaviorEvent(kind: .prompt), state: &state)
+        }
+        let inventoryBeforeRelease = state.inventory
+        XCTAssertFalse(inventoryBeforeRelease.isEmpty, "Should have equipment before release")
+
+        // Simulate release: preserve inventory and equippedItems
+        let entry = GraveyardEntry(from: state, cause: "방생")
+        let previousEntries = state.graveyardEntries
+        let previousDeathCount = state.deathCount
+        let previousAchievements = state.unlockedAchievements
+        let previousInventory = state.inventory
+        let previousEquippedItems = state.equippedItems
+        state = PetState(machineId: "test-release")
+        state.graveyardEntries = previousEntries + [entry]
+        state.deathCount = previousDeathCount
+        state.unlockedAchievements = previousAchievements
+        state.inventory = previousInventory
+        state.equippedItems = previousEquippedItems
+
+        XCTAssertEqual(state.phase, .egg, "Should be egg after release")
+        XCTAssertEqual(state.level, 0, "Level resets after release")
+        XCTAssertEqual(state.inventory.count, inventoryBeforeRelease.count, "Inventory should be preserved after release")
+        XCTAssertEqual(state.graveyardEntries.last?.causeOfDeath, "방생")
+    }
+
     // MARK: - Edge Cases
 
     func testFeedingDeadPetStillRecordsStats() {

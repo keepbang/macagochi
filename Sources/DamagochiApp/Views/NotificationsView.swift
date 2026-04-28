@@ -57,13 +57,22 @@ struct NotificationsView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.message)
                     .font(.caption)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(item.isRead ? .tertiary : .primary)
                 Text(relativeTime(item.timestamp))
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.quaternary)
             }
 
             Spacer()
+
+            if !item.isRead {
+                Button("읽음") {
+                    viewModel.markWalkNotificationAsRead(id: item.id)
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .buttonStyle(.plain)
+            }
 
             Button(action: { viewModel.dismissWalkNotification(id: item.id) }) {
                 Image(systemName: "xmark")
@@ -73,7 +82,7 @@ struct NotificationsView: View {
             .buttonStyle(.plain)
         }
         .padding(8)
-        .background(RoundedRectangle(cornerRadius: 8).fill(.quaternary.opacity(0.3)))
+        .background(RoundedRectangle(cornerRadius: 8).fill(.quaternary.opacity(item.isRead ? 0.15 : 0.3)))
     }
 
     private func notificationIcon(_ message: String) -> String {
