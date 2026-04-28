@@ -4,7 +4,6 @@ import DamagochiCore
 struct SettingsView: View {
     @ObservedObject var viewModel: PetViewModel
     @State private var showReleaseConfirm = false
-    @State private var showResetConfirm = false
     @State private var commandCopied = false
 
     var body: some View {
@@ -49,7 +48,6 @@ struct SettingsView: View {
                         releaseSection
                     }
                     appInfoSection
-                    resetSection
                 }
                 .padding(12)
             }
@@ -64,16 +62,6 @@ struct SettingsView: View {
             Button("취소", role: .cancel) {}
         } message: {
             Text("현재 펫은 묘지에 기록되고 새로운 알이 생성됩니다.")
-        }
-        .confirmationDialog(
-            "모든 데이터를 초기화하시겠습니까?",
-            isPresented: $showResetConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("초기화", role: .destructive) { viewModel.resetApp() }
-            Button("취소", role: .cancel) {}
-        } message: {
-            Text("펫, 묘지, 업적 등 모든 데이터가 삭제되고 앱이 처음 상태로 돌아갑니다.")
         }
     }
 
@@ -267,30 +255,6 @@ struct SettingsView: View {
             .buttonStyle(.bordered)
             .controlSize(.small)
             .tint(.red)
-        }
-        .padding(10)
-        .background(RoundedRectangle(cornerRadius: 8).fill(.quaternary.opacity(0.3)))
-    }
-
-    // MARK: - Reset
-
-    private var resetSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("초기화 및 삭제", systemImage: "exclamationmark.triangle.fill")
-                .font(.caption.bold())
-                .foregroundStyle(.orange)
-
-            Text("앱 완전 삭제 방법: 메뉴바 아이콘 우클릭 → 종료 후, Finder에서 /Applications/Damagochi.app 삭제")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-
-            Button(action: { showResetConfirm = true }) {
-                Label("모든 데이터 초기화", systemImage: "trash.fill")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .tint(.orange)
         }
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 8).fill(.quaternary.opacity(0.3)))
