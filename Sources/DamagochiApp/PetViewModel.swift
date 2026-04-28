@@ -565,9 +565,10 @@ final class PetViewModel: ObservableObject {
                 return
             }
 
+            let script = "do shell script \"\(brewPath) upgrade --cask keepbang/tap/damagochi\" with administrator privileges"
             let process = Process()
-            process.executableURL = URL(fileURLWithPath: brewPath)
-            process.arguments = ["upgrade", "--cask", "keepbang/tap/damagochi"]
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+            process.arguments = ["-e", script]
 
             let pipe = Pipe()
             process.standardOutput = pipe
@@ -585,7 +586,12 @@ final class PetViewModel: ObservableObject {
                     if process.terminationStatus == 0 {
                         self.restartApp()
                     } else {
-                        self.updateError = output.isEmpty ? "업데이트에 실패했습니다." : output
+                        // osascript returns -128 when user cancels the auth dialog
+                        if process.terminationStatus == -128 {
+                            self.updateError = nil
+                        } else {
+                            self.updateError = output.isEmpty ? "업데이트에 실패했습니다." : output
+                        }
                     }
                 }
             } catch {
