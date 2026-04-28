@@ -565,29 +565,41 @@ final class PetViewModel: ObservableObject {
                 return
             }
 
-            let script = "do shell script \"\(brewPath) upgrade --cask keepbang/tap/damagochi\" with administrator privileges"
+            // Run brew as the current user (not root) to avoid Homebrew's root check.
+            // The outer shell runs with administrator privileges so sudo can switch users without a password.
+            let username = NSUserName()
+            let script = "do shell script \"sudo -u '\(username)' '\(brewPath)' upgrade --cask keepbang/tap/damagochi 2>&1\" with administrator privileges"
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
             process.arguments = ["-e", script]
 
-            let pipe = Pipe()
-            process.standardOutput = pipe
-            process.standardError = pipe
+            let outPipe = Pipe()
+            let errPipe = Pipe()
+            process.standardOutput = outPipe
+            process.standardError = errPipe
 
             do {
                 try process.run()
                 process.waitUntilExit()
 
-                let outputData = pipe.fileHandleForReading.readDataToEndOfFile()
-                let output = String(data: outputData, encoding: .utf8) ?? ""
+                let outData = outPipe.fileHandleForReading.readDataToEndOfFile()
+                let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
+                let output = [outData, errData]
+                    .compactMap { String(data: $0, encoding: .utf8) }
+                    .joined()
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
 
                 await MainActor.run {
                     self.isUpdating = false
                     if process.terminationStatus == 0 {
                         self.restartApp()
                     } else {
-                        // osascript returns -128 when user cancels the auth dialog
-                        if process.terminationStatus == -128 {
+                        // User cancelled the authentication dialog (osascript exits with 1,
+                        // "User cancelled" in output)
+                        let cancelled = output.lowercased().contains("user cancel") ||
+                                        output.lowercased().contains("cancelled") ||
+                                        output.lowercased().contains("취소")
+                        if cancelled {
                             self.updateError = nil
                         } else {
                             self.updateError = output.isEmpty ? "업데이트에 실패했습니다." : output
