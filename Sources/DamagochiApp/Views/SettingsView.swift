@@ -15,13 +15,13 @@ struct SettingsView: View {
                 Text("v\(appVersion)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                if viewModel.isCheckingUpdate {
+                if viewModel.isCheckingUpdate || viewModel.isUpdating {
                     ProgressView()
                         .scaleEffect(0.6)
                         .padding(.leading, 4)
                 } else if viewModel.hasUpdate, let latest = viewModel.latestVersion {
                     Button("v\(latest) 업데이트") {
-                        viewModel.openReleasePage()
+                        viewModel.performBrewUpdate()
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.mini)
@@ -202,7 +202,27 @@ struct SettingsView: View {
             infoRow("버전", value: appVersion)
             infoRow("플랫폼", value: "macOS 14+")
 
-            if viewModel.hasUpdate, let latest = viewModel.latestVersion {
+            if viewModel.isUpdating {
+                HStack {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                    Text("Homebrew로 업데이트 중...")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+            } else if let error = viewModel.updateError {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .font(.caption)
+                    Text(error)
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                        .lineLimit(3)
+                    Spacer()
+                }
+            } else if viewModel.hasUpdate, let latest = viewModel.latestVersion {
                 HStack {
                     Image(systemName: "arrow.up.circle.fill")
                         .foregroundStyle(.green)
@@ -212,7 +232,7 @@ struct SettingsView: View {
                         .foregroundStyle(.green)
                     Spacer()
                     Button("업데이트") {
-                        viewModel.openReleasePage()
+                        viewModel.performBrewUpdate()
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.mini)
