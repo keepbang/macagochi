@@ -210,7 +210,7 @@ final class PetViewModel: ObservableObject {
     func startWalk() {
         guard canWalk else { return }
         isWalking = true
-        walkingDecayTimer = Timer.publish(every: 60, on: .main, in: .common)
+        walkingDecayTimer = Timer.publish(every: 108, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in self?.applyWalkingDecay() }
     }
@@ -243,6 +243,14 @@ final class PetViewModel: ObservableObject {
         state.hp = max(0, state.hp - 1)
         state.hunger = max(0, state.hunger - 2)
         if state.hp != oldHp || state.hunger != oldHunger { save() }
+        if state.hp == 0 {
+            stopWalk()
+            let entry = deathChecker.processDeath(state: &state)
+            state.graveyardEntries.append(entry)
+            save()
+            showNotification("산책 중 과로사했습니다...", icon: "heart.slash.fill")
+            sendSystemNotification { $0.sendDeath() }
+        }
     }
 
     private func showWalkSpeechBubble(_ message: String) {
@@ -355,20 +363,6 @@ final class PetViewModel: ObservableObject {
             try hookInstaller.uninstall()
             hookInstalled = false
         } catch {}
-    }
-
-    // MARK: - Reset
-
-    func resetApp() {
-        store.reset()
-        UserDefaults.standard.removeObject(forKey: "onboardingCompleted")
-        let hostHash = ProcessInfo.processInfo.hostName
-            .data(using: .utf8)
-            .map { CryptoKit.SHA256.hash(data: $0) }
-            .map { $0.prefix(8).map { String(format: "%02x", $0) }.joined() }
-            ?? "unknown"
-        state = PetState(machineId: hostHash)
-        showNotification("앱 데이터가 초기화되었습니다.", icon: "arrow.counterclockwise")
     }
 
     // MARK: - Release
