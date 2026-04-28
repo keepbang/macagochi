@@ -23,6 +23,7 @@ let package = Package(
                 "DamagochiMonitor",
                 "DamagochiStorage",
                 "DamagochiRenderer",
+                "DamagochiNetwork",
             ],
             linkerSettings: [
                 .unsafeFlags(["-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__info_plist", "-Xlinker", "Resources/Info.plist"]),
@@ -42,6 +43,10 @@ let package = Package(
         ),
         .target(
             name: "DamagochiRenderer",
+            dependencies: ["DamagochiCore"]
+        ),
+        .target(
+            name: "DamagochiNetwork",
             dependencies: ["DamagochiCore"]
         ),
         .executableTarget(

@@ -8,7 +8,7 @@ import DamagochiStorage
 import DamagochiRenderer
 
 enum AppTab: String, CaseIterable {
-    case pet, inventory, achievements, graveyard, notifications, settings
+    case pet, inventory, achievements, graveyard, notifications, battle, settings
 
     var icon: String {
         switch self {
@@ -17,6 +17,7 @@ enum AppTab: String, CaseIterable {
         case .achievements:  return "trophy.fill"
         case .graveyard:     return "book.closed.fill"
         case .notifications: return "bell.fill"
+        case .battle:        return "bolt.shield.fill"
         case .settings:      return "gearshape.fill"
         }
     }
@@ -629,7 +630,7 @@ final class PetViewModel: ObservableObject {
         NSApp.terminate(nil)
     }
 
-    private func save() {
+    func save() {
         store.save(state)
     }
 }
