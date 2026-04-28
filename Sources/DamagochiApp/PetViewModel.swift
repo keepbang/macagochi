@@ -59,6 +59,8 @@ final class PetViewModel: ObservableObject {
     private var bugCleanupTimer: AnyCancellable?
     @Published var latestVersion: String?
     @Published var isCheckingUpdate: Bool = false
+    @Published var isUpdating: Bool = false
+    @Published var updateError: String?
     @Published var isWalking: Bool = false
     @Published var walkSpeechBubble: String?
     @Published var walkNotifications: [WalkNotification] = []
@@ -546,10 +548,60 @@ final class PetViewModel: ObservableObject {
         return latest.compare(current, options: .numeric) == .orderedDescending
     }
 
-    func openReleasePage() {
-        if let url = URL(string: "https://github.com/keepbang/damagochi/releases/latest") {
-            NSWorkspace.shared.open(url)
+    func performBrewUpdate() {
+        guard !isUpdating else { return }
+        isUpdating = true
+        updateError = nil
+
+        Task.detached(priority: .userInitiated) {
+            let brewPaths = ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"]
+            guard let brewPath = brewPaths.first(where: { FileManager.default.fileExists(atPath: $0) }) else {
+                await MainActor.run {
+                    self.isUpdating = false
+                    self.updateError = "Homebrew를 찾을 수 없습니다."
+                }
+                return
+            }
+
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: brewPath)
+            process.arguments = ["upgrade", "--cask", "keepbang/tap/damagochi"]
+
+            let pipe = Pipe()
+            process.standardOutput = pipe
+            process.standardError = pipe
+
+            do {
+                try process.run()
+                process.waitUntilExit()
+
+                let outputData = pipe.fileHandleForReading.readDataToEndOfFile()
+                let output = String(data: outputData, encoding: .utf8) ?? ""
+
+                await MainActor.run {
+                    self.isUpdating = false
+                    if process.terminationStatus == 0 {
+                        self.restartApp()
+                    } else {
+                        self.updateError = output.isEmpty ? "업데이트에 실패했습니다." : output
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.isUpdating = false
+                    self.updateError = "업데이트 실행 실패: \(error.localizedDescription)"
+                }
+            }
         }
+    }
+
+    private func restartApp() {
+        let appPath = Bundle.main.bundlePath
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = ["-c", "sleep 2 && open '\(appPath)'"]
+        try? process.run()
+        NSApp.terminate(nil)
     }
 
     private func save() {
