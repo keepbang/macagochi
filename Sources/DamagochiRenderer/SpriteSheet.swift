@@ -5351,52 +5351,236 @@ public enum SpriteSheet {
         guard phase == .alive else { return base }
 
         let overlayList: [PixelSprite] = [
-            equipped.head.flatMap { id in inventory.first { $0.id == id } }.map { headOverlay(rarity: $0.rarity) },
-            equipped.hand.flatMap { id in inventory.first { $0.id == id } }.map { handOverlay(rarity: $0.rarity) },
-            equipped.effect.flatMap { id in inventory.first { $0.id == id } }.map { effectOverlay(rarity: $0.rarity) },
+            equipped.head.flatMap { id in inventory.first { $0.id == id } }.map { headOverlay(item: $0) },
+            equipped.hand.flatMap { id in inventory.first { $0.id == id } }.map { handOverlay(item: $0) },
+            equipped.effect.flatMap { id in inventory.first { $0.id == id } }.map { effectOverlay(item: $0) },
         ].compactMap { $0 }
 
         guard !overlayList.isEmpty else { return base }
         return base.map { frame in overlayList.reduce(frame) { $0.overlaid(with: $1) } }
     }
 
-    private static func headOverlay(rarity: Rarity) -> PixelSprite {
-        switch rarity {
-        case .common:    return headCommon
-        case .rare:      return headRare
-        case .legendary: return headLegendary
-        case .mythic:    return headMythic
+    private static func headOverlay(item: Equipment) -> PixelSprite {
+        switch item.id {
+        case "head_common_1":    return headCodingCap
+        case "head_common_2":    return headBaseballCap
+        case "head_common_3":    return headBeanie
+        case "head_rare_1":      return headGlowCrown
+        case "head_rare_2":      return headWizardHat
+        case "head_rare_3":      return headSamuraiHelm
+        case "head_legendary_1": return headDragonHorns
+        case "head_legendary_2": return headFlameCrown
+        case "head_mythic_1":    return headHeavenlyHalo
+        case "head_mythic_2":    return headCosmicRing
+        default:
+            switch item.rarity {
+            case .common:    return headBeanie
+            case .rare:      return headGlowCrown
+            case .legendary: return headFlameCrown
+            case .mythic:    return headHeavenlyHalo
+            }
         }
     }
 
-    private static func handOverlay(rarity: Rarity) -> PixelSprite {
-        switch rarity {
-        case .common:    return handCommon
-        case .rare:      return handRare
-        case .legendary: return handLegendary
-        case .mythic:    return handMythic
+    private static func handOverlay(item: Equipment) -> PixelSprite {
+        switch item.id {
+        case "hand_common_1":    return handWoodStaff
+        case "hand_common_2":    return handSmallShield
+        case "hand_common_3":    return handLaptop
+        case "hand_rare_1":      return handMagicKeyboard
+        case "hand_rare_2":      return handCrystalStaff
+        case "hand_rare_3":      return handEnergySword
+        case "hand_legendary_1": return handLightningMouse
+        case "hand_legendary_2": return handCodeScroll
+        case "hand_mythic_1":    return handInfinityTerminal
+        case "hand_mythic_2":    return handHourglass
+        default:
+            switch item.rarity {
+            case .common:    return handWoodStaff
+            case .rare:      return handCrystalStaff
+            case .legendary: return handLightningMouse
+            case .mythic:    return handInfinityTerminal
+            }
         }
     }
 
-    private static func effectOverlay(rarity: Rarity) -> PixelSprite {
-        switch rarity {
-        case .common:    return effectCommon
-        case .rare:      return effectRare
-        case .legendary: return effectLegendary
-        case .mythic:    return effectMythic
+    private static func effectOverlay(item: Equipment) -> PixelSprite {
+        switch item.id {
+        case "effect_common_1":    return effectSparkle
+        case "effect_common_2":    return effectBubbles
+        case "effect_common_3":    return effectLeaves
+        case "effect_rare_1":      return effectCodeAura
+        case "effect_rare_2":      return effectLightningAura
+        case "effect_rare_3":      return effectFlameTrail
+        case "effect_legendary_1": return effectRainbowTrail
+        case "effect_legendary_2": return effectStarBurst
+        case "effect_mythic_1":    return effectCosmicDust
+        case "effect_mythic_2":    return effectDimensionRift
+        default:
+            switch item.rarity {
+            case .common:    return effectSparkle
+            case .rare:      return effectCodeAura
+            case .legendary: return effectStarBurst
+            case .mythic:    return effectCosmicDust
+            }
         }
     }
 
-    private static let headCommon = s(
-        [".": .clear, "b": .blue],
+    // MARK: Head — Common
+
+    // 코딩 모자: dark-blue dev cap with binary-text band and front brim
+    private static let headCodingCap = s(
+        [".": .clear, "#": .black, "d": .darkBlue, "b": .blue, "w": .white],
         [
             "................",
-            ".....bbbbbb.....",
-            "....bbbbbbbb....",
-            "....bbbbbbbb....",
-            "...bbbbbbbbbb...",
+            "................",
+            ".....######.....",
+            "....#dddddd#....",
+            "....#dbbbbbd#...",
+            "....#wbwbwbwd#..",
+            "....#dddddd#....",
+            "..############..",
             "................",
             "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+        ]
+    )
+
+    // 야구 모자: red baseball cap with side brim
+    private static let headBaseballCap = s(
+        [".": .clear, "#": .black, "r": .red, "k": .darkRed, "w": .white],
+        [
+            "................",
+            "................",
+            "......####......",
+            ".....#rrrr#.....",
+            "....#rrrrrr#....",
+            "....#rwrrrrr#...",
+            "....#krrrrrk#...",
+            "....##########..",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+        ]
+    )
+
+    // 비니: knit beanie with white pom-pom
+    private static let headBeanie = s(
+        [".": .clear, "#": .black, "m": .mint, "g": .green, "w": .white],
+        [
+            "................",
+            ".......##.......",
+            "......#ww#......",
+            "......#ww#......",
+            "....##########..",
+            "...#mgmgmgmgm#..",
+            "...#mmmmmmmmm#..",
+            "...#mgmgmgmgm#..",
+            "...###########..",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+        ]
+    )
+
+    // MARK: Head — Rare
+
+    // 빛나는 왕관: golden three-spike crown with gems
+    private static let headGlowCrown = s(
+        [".": .clear, "#": .black, "g": .gold, "y": .yellow, "r": .red, "b": .blue, "w": .white],
+        [
+            "................",
+            "................",
+            "...#......#.....",
+            "..#g#.##..#g#...",
+            "..#gg#yy#gggg#..",
+            "..#gygggggygg#..",
+            "..#grgggwgggbg#.",
+            "..#gggggggggg#..",
+            "..############..",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+        ]
+    )
+
+    // 마법사 모자: tall pointy purple hat with star
+    private static let headWizardHat = s(
+        [".": .clear, "#": .black, "p": .purple, "l": .lavender, "y": .yellow],
+        [
+            "......##........",
+            ".....#py#.......",
+            ".....#pp#.......",
+            "....#ppl#.......",
+            "....#pyl#.......",
+            "...#pllpp#......",
+            "...#pppppp#.....",
+            "..#ppplppppp#...",
+            "..############..",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+        ]
+    )
+
+    // 사무라이 투구: dark-steel helmet with golden crescent crest
+    private static let headSamuraiHelm = s(
+        [".": .clear, "#": .black, "k": .darkGray, "g": .gold, "y": .yellow, "r": .darkRed],
+        [
+            "................",
+            "..#g#......#g#..",
+            "..#gg#....#gg#..",
+            "..#ggg####ggg#..",
+            "..#gkkyyyykkg#..",
+            "..#kkkkkkkkkk#..",
+            "..#kkkrkkrkkk#..",
+            "..#kkkkkkkkkk#..",
+            "..############..",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+        ]
+    )
+
+    // MARK: Head — Legendary
+
+    // 용의 뿔: pair of curved dragon horns
+    private static let headDragonHorns = s(
+        [".": .clear, "#": .black, "r": .darkRed, "o": .red, "y": .gold],
+        [
+            "...#........#...",
+            "..#r#......#r#..",
+            "..#ro#....#or#..",
+            "..#ro#....#or#..",
+            "...#or#..#ro#...",
+            "...#oryyyyro#...",
+            "...##########...",
             "................",
             "................",
             "................",
@@ -5409,16 +5593,42 @@ public enum SpriteSheet {
         ]
     )
 
-    private static let headRare = s(
-        [".": .clear, "y": .yellow, "g": .gold],
+    // 불꽃 왕관: gold band with dancing flames
+    private static let headFlameCrown = s(
+        [".": .clear, "#": .black, "g": .gold, "y": .yellow, "o": .orange, "r": .red],
         [
-            "....y...y...y...",
-            "....yyyyyyyyy...",
-            "...ggggggggg....",
+            "................",
+            ".....y..y..y....",
+            "....yoy.yoy.yo..",
+            "...yorryyorryo..",
+            "...rorororroor..",
+            "..#gggggggggg#..",
+            "..#gygygygygg#..",
+            "..############..",
             "................",
             "................",
             "................",
             "................",
+            "................",
+            "................",
+            "................",
+            "................",
+        ]
+    )
+
+    // MARK: Head — Mythic
+
+    // 천상의 후광: glowing ring halo above the head
+    private static let headHeavenlyHalo = s(
+        [".": .clear, "#": .black, "y": .yellow, "g": .gold, "w": .white],
+        [
+            "....##########..",
+            "...#wggggggggw#.",
+            "...#g########g#.",
+            "...#g#......#g#.",
+            "...#g########g#.",
+            "...#wggyyyygggw#",
+            "....##########..",
             "................",
             "................",
             "................",
@@ -5431,17 +5641,18 @@ public enum SpriteSheet {
         ]
     )
 
-    private static let headLegendary = s(
-        [".": .clear, "b": .brown],
+    // 우주의 고리: planet with tilted ring
+    private static let headCosmicRing = s(
+        [".": .clear, "#": .black, "p": .purple, "l": .lavender, "y": .yellow, "w": .white],
         [
-            "..b.........b...",
-            "..bb.......bb...",
-            "...b.b...b.b....",
-            "...bbb...bbb....",
-            "....bbb.bbb.....",
-            "....bbbbbbb.....",
             "................",
-            "................",
+            "....#######.....",
+            "...#pppllpp#....",
+            "..#plllllllp#...",
+            ".#yyyyyyyyyyy#..",
+            ".#wllpllpllpw#..",
+            "..#pllllllp#....",
+            "...#######......",
             "................",
             "................",
             "................",
@@ -5453,205 +5664,479 @@ public enum SpriteSheet {
         ]
     )
 
-    private static let headMythic = s(
-        [".": .clear, "y": .yellow],
+    // MARK: Hand — Common
+
+    // 나무 지팡이: brown wooden walking staff
+    private static let handWoodStaff = s(
+        [".": .clear, "#": .black, "b": .brown, "g": .ginger, "t": .tan],
         [
-            ".....yyyyyy.....",
-            "....yy....yy....",
-            ".....yyyyyy.....",
+            "................",
+            "................",
+            "............#...",
+            "...........#g#..",
+            "...........#g#..",
+            "...........#b#..",
+            "...........#b#..",
+            "...........#t#..",
+            "...........#b#..",
+            "...........#b#..",
+            "...........#g#..",
+            "...........#b#..",
+            "...........#b#..",
+            "...........###..",
+            "................",
+            "................",
+        ]
+    )
+
+    // 작은 방패: round wooden shield with iron rim
+    private static let handSmallShield = s(
+        [".": .clear, "#": .black, "b": .brown, "t": .tan, "g": .gray],
+        [
             "................",
             "................",
             "................",
-            "................",
-            "................",
-            "................",
-            "................",
-            "................",
-            "................",
-            "................",
+            "..........###...",
+            ".........#ggg#..",
+            ".........#btb#..",
+            "........#bttbg#.",
+            "........#tbttg#.",
+            "........#btttg#.",
+            "........#bttbg#.",
+            ".........#tbb#..",
+            ".........#bbb#..",
+            "..........###...",
             "................",
             "................",
             "................",
         ]
     )
 
-    private static let handCommon = s(
-        [".": .clear, "b": .brown, "g": .ginger],
+    // 노트북: small open laptop with screen
+    private static let handLaptop = s(
+        [".": .clear, "#": .black, "k": .darkGray, "g": .gray, "w": .white, "b": .blue],
         [
             "................",
             "................",
-            "............g...",
-            "............bb..",
-            "............bb..",
-            "............bb..",
-            "............bb..",
-            "............bb..",
-            "............bb..",
-            "............bb..",
-            "............bb..",
-            "............bb..",
-            "............bb..",
+            "................",
+            "................",
+            "........######..",
+            "........#kkkk#..",
+            "........#wbww#..",
+            "........#wwbw#..",
+            "........#kkkk#..",
+            "........######..",
+            ".......########.",
+            ".......#gggggg#.",
+            ".......########.",
             "................",
             "................",
             "................",
         ]
     )
 
-    private static let handRare = s(
-        [".": .clear, "b": .blue, "t": .teal],
-        [
-            "................",
-            "................",
-            "............t...",
-            "............bb..",
-            "............bb..",
-            "............bb..",
-            "............bb..",
-            "............bb..",
-            "..........ttttt.",
-            "...........ttt..",
-            "...........bbb..",
-            "............bb..",
-            "................",
-            "................",
-            "................",
-            "................",
-        ]
-    )
+    // MARK: Hand — Rare
 
-    private static let handLegendary = s(
-        [".": .clear, "m": .lightGray, "y": .yellow],
+    // 마법 키보드: glowing rectangular keyboard
+    private static let handMagicKeyboard = s(
+        [".": .clear, "#": .black, "k": .darkGray, "w": .white, "p": .lavender],
         [
             "................",
             "................",
             "................",
             "................",
             "................",
-            "..............m.",
-            ".............mm.",
-            "............mmm.",
-            "............mmm.",
-            "..........mmmmm.",
-            "...........mmm..",
-            "...........mmm..",
-            "...........yyy..",
+            "......##########",
+            "......#kkkkkkkk#",
+            "......#wwwwwwww#",
+            "......#kpkpkpkk#",
+            "......#wwwwwwww#",
+            "......#kpkpkpkk#",
+            "......#wwwwwwww#",
+            "......##########",
             "................",
             "................",
             "................",
         ]
     )
 
-    private static let handMythic = s(
-        [".": .clear, "g": .green],
+    // 수정 지팡이: staff topped with a glowing crystal
+    private static let handCrystalStaff = s(
+        [".": .clear, "#": .black, "b": .brown, "t": .teal, "m": .mint, "w": .white],
+        [
+            "................",
+            "..........#m#...",
+            ".........#wmt#..",
+            ".........#mtm#..",
+            "..........#t#...",
+            "...........#....",
+            "...........#b#..",
+            "...........#b#..",
+            "...........#b#..",
+            "...........#b#..",
+            "...........#b#..",
+            "...........#b#..",
+            "...........#b#..",
+            "...........###..",
+            "................",
+            "................",
+        ]
+    )
+
+    // 에너지 검: glowing blade of light energy
+    private static let handEnergySword = s(
+        [".": .clear, "#": .black, "c": .teal, "w": .white, "y": .yellow, "k": .darkGray],
+        [
+            "............#...",
+            "...........#c#..",
+            "...........#w#..",
+            "...........#c#..",
+            "...........#w#..",
+            "...........#c#..",
+            "...........#w#..",
+            "...........#c#..",
+            "..........#cwc#.",
+            "..........##c##.",
+            "...........#k#..",
+            "...........#y#..",
+            "...........#k#..",
+            "............#...",
+            "................",
+            "................",
+        ]
+    )
+
+    // MARK: Hand — Legendary
+
+    // 번개 마우스: mouse with lightning bolt arc
+    private static let handLightningMouse = s(
+        [".": .clear, "#": .black, "g": .lightGray, "w": .white, "y": .yellow, "k": .darkGray],
+        [
+            "................",
+            "................",
+            "............y...",
+            "...........y#...",
+            "..........y#....",
+            ".........y####..",
+            "........y#wggg#.",
+            "..........#wgg#.",
+            ".........#kgggg#",
+            ".........#gggggg",
+            "..........#gggg#",
+            "...........####.",
+            "............#...",
+            "............#...",
+            "................",
+            "................",
+        ]
+    )
+
+    // 코드 스크롤: parchment scroll with code lines
+    private static let handCodeScroll = s(
+        [".": .clear, "#": .black, "t": .tan, "c": .cream, "b": .brown, "k": .darkGray],
         [
             "................",
             "................",
             "................",
-            "................",
-            "................",
-            "..........gggg..",
-            "..........gggg..",
-            "..........gggg..",
-            "..........gggg..",
-            "...........gg...",
-            "...........gg...",
-            "...........gg...",
-            "...........gg...",
-            "................",
-            "................",
-            "................",
-        ]
-    )
-
-    // effectCommon: warm yellow corner sparkle blocks
-    private static let effectCommon = s(
-        [".": .clear, "y": .yellow],
-        [
-            "yy............yy",
-            "yy............yy",
-            "................",
-            "................",
-            "................",
-            "................",
-            "................",
-            "................",
-            "................",
-            "................",
-            "................",
-            "................",
-            "................",
-            "................",
-            "yy............yy",
-            "yy............yy",
-        ]
-    )
-
-    // effectRare: teal oval ring / magic aura halo
-    private static let effectRare = s(
-        [".": .clear, "g": .mint],
-        [
-            ".....gggggg.....",
-            "...gg......gg...",
-            "..g..........g..",
-            "..g..........g..",
-            ".g............g.",
-            ".g............g.",
-            ".g............g.",
-            ".g............g.",
-            ".g............g.",
-            ".g............g.",
-            "..g..........g..",
-            "..g..........g..",
-            "...gg......gg...",
-            ".....gggggg.....",
+            "........########",
+            "........#bbbbbb#",
+            "........#cccccc#",
+            "........#ckkckc#",
+            "........#cccccc#",
+            "........#ckckkc#",
+            "........#cccccc#",
+            "........#ckkckc#",
+            "........#cccccc#",
+            "........#bbbbbb#",
+            "........########",
             "................",
             "................",
         ]
     )
 
-    // effectLegendary: flame burst rising from bottom
-    private static let effectLegendary = s(
-        [".": .clear, "r": .red, "o": .orange, "y": .yellow],
+    // MARK: Hand — Mythic
+
+    // 무한의 터미널: floating terminal with prompt
+    private static let handInfinityTerminal = s(
+        [".": .clear, "#": .black, "k": .black, "g": .green, "w": .white, "d": .darkGray],
         [
             "................",
             "................",
             "................",
+            "......##########",
+            "......#dddddddd#",
+            "......##########",
+            "......#kkkkkkkk#",
+            "......#kgwkwkkk#",
+            "......#kkgwgkkk#",
+            "......#kkkkkkkk#",
+            "......#kggkkkkk#",
+            "......#kkkkkkkk#",
+            "......##########",
             "................",
-            "................",
-            "................",
-            ".......y........",
-            "......yoy.......",
-            ".....yoooy......",
-            "....yoorroooy...",
-            "...yoorrrrrooy..",
-            "..yoorrrrrrrooy.",
-            ".yoorrrrrrrroooy",
-            "yoorrrrrrrrroooy",
             "................",
             "................",
         ]
     )
 
-    // effectMythic: dense star constellation scattered all over
-    private static let effectMythic = s(
+    // 시간의 모래시계: hourglass with sand top and bottom
+    private static let handHourglass = s(
+        [".": .clear, "#": .black, "g": .gold, "y": .yellow, "w": .white, "b": .brown],
+        [
+            "................",
+            "................",
+            "........######..",
+            "........#bbbb#..",
+            "........#yyyy#..",
+            "........#wyyw#..",
+            "........##yy##..",
+            ".........#yy#...",
+            ".........#yy#...",
+            "........##yy##..",
+            "........#wyyw#..",
+            "........#yyyy#..",
+            "........#yyyy#..",
+            "........#bbbb#..",
+            "........######..",
+            "................",
+        ]
+    )
+
+    // MARK: Effect — Common
+
+    // 작은 반짝임: small four-point sparkles in corners
+    private static let effectSparkle = s(
         [".": .clear, "y": .yellow, "w": .white],
         [
-            "y..............y",
-            "...w............",
-            ".......y........",
-            "...............w",
-            "....y...........",
-            "..............y.",
-            ".w..............",
-            "........w.......",
-            ".y..............",
+            "...y............",
+            "..ywy...........",
+            "...y............",
+            "................",
+            "................",
+            "............y...",
+            "...........ywy..",
+            "............y...",
+            "................",
+            "...y............",
+            "..ywy...........",
+            "...y............",
+            "................",
+            "............y...",
+            "...........ywy..",
+            "............y...",
+        ]
+    )
+
+    // 버블 이펙트: floating soap bubbles with highlights
+    private static let effectBubbles = s(
+        [".": .clear, "b": .blue, "w": .white, "c": .teal],
+        [
+            "................",
+            "..bbb...........",
+            ".bwwcb..........",
+            ".bcccb.....bbb..",
+            "..bbb.....bwwcb.",
+            "..........bcccb.",
+            "................",
+            ".............bbb",
+            "............bwwc",
+            "............bccc",
+            ".....bbb.....bbb",
+            "....bwwcb.......",
+            "....bcccb.......",
+            ".....bbb........",
+            "................",
+            "................",
+        ]
+    )
+
+    // 잎사귀 흔들림: small leaves drifting around the pet
+    private static let effectLeaves = s(
+        [".": .clear, "g": .green, "d": .darkGreen, "l": .lime],
+        [
+            "................",
+            "..lg............",
+            ".lggd...........",
+            "..gd............",
+            "................",
+            ".............gl.",
+            "............dggl",
+            ".............dg.",
+            "................",
+            "................",
+            "..lg............",
+            ".lgdg...........",
+            "..gd............",
+            ".............gl.",
+            "............dggl",
+            ".............dg.",
+        ]
+    )
+
+    // MARK: Effect — Rare
+
+    // 코드 오라: floating 0s and 1s like binary aura
+    private static let effectCodeAura = s(
+        [".": .clear, "g": .green, "w": .white, "d": .darkGreen],
+        [
+            ".g....g.......w.",
+            "...w.......g....",
+            "................",
+            "g.....w......d..",
+            "................",
+            "...w......g.....",
+            "g..............w",
+            "................",
+            "................",
+            "w...........g...",
+            "................",
+            ".....g........w.",
+            "g..............d",
+            "................",
+            "...d.....w...g..",
+            ".w........g.....",
+        ]
+    )
+
+    // 번개 오라: jagged lightning bolts around the pet
+    private static let effectLightningAura = s(
+        [".": .clear, "y": .yellow, "w": .white, "o": .orange],
+        [
+            "y..............w",
+            ".y.............y",
+            "..w...........yo",
+            "..y............o",
+            "y...............",
+            "y...............",
+            "................",
+            "................",
+            "................",
+            "................",
             "...............y",
-            "........w.......",
-            "..y.............",
-            "...............y",
+            "..............yw",
+            "...............o",
+            "y...............",
+            "yw.............y",
+            "o.............wy",
+        ]
+    )
+
+    // 불꽃 트레일: rising flame trail at the bottom
+    private static let effectFlameTrail = s(
+        [".": .clear, "r": .red, "o": .orange, "y": .yellow, "w": .white],
+        [
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
             ".........y......",
-            ".w.............w",
-            "y..............y",
+            ".....y..yoy.....",
+            "....yoy.ywoy....",
+            "...yowoyywoooy..",
+            "..yowwooowwooy..",
+            ".yroowwoooorrooy",
+            "yrrooowwoorrrroy",
+            "yrrrooooorrrrrry",
+        ]
+    )
+
+    // MARK: Effect — Legendary
+
+    // 무지개 궤적: rainbow arc trailing behind
+    private static let effectRainbowTrail = s(
+        [".": .clear, "r": .red, "o": .orange, "y": .yellow, "g": .green, "b": .blue, "p": .purple],
+        [
+            "................",
+            "................",
+            "................",
+            "................",
+            "rrrr............",
+            "ooorr...........",
+            "yyyoorr.........",
+            "gggyyoor........",
+            "bbbggyyoo.......",
+            "pppbbggyyo......",
+            "..pppbbggyy.....",
+            "....ppbbggy.....",
+            "................",
+            "................",
+            "................",
+            "................",
+        ]
+    )
+
+    // 별빛 폭발: star-shaped explosion radiating outward
+    private static let effectStarBurst = s(
+        [".": .clear, "y": .yellow, "w": .white, "o": .orange],
+        [
+            "y......y......y.",
+            ".y.....y.....y..",
+            "..y....w....y...",
+            "...y...w...y....",
+            "....yo.w.oy.....",
+            ".....yowoy......",
+            "wwwwwwwwwwwwwww.",
+            ".....yowoy......",
+            "....yo.w.oy.....",
+            "...y...w...y....",
+            "..y....w....y...",
+            ".y.....y.....y..",
+            "y......y......y.",
+            "................",
+            "................",
+            "................",
+        ]
+    )
+
+    // MARK: Effect — Mythic
+
+    // 우주 먼지: drifting cosmic dust with multi-color stars
+    private static let effectCosmicDust = s(
+        [".": .clear, "y": .yellow, "w": .white, "p": .purple, "b": .blue, "l": .lavender],
+        [
+            "y...l.........w.",
+            "..p.....b.......",
+            "....w.......l...",
+            "y.........p.....",
+            "...l...w........",
+            "........b......y",
+            ".p..............",
+            ".......l........",
+            "...b.........w..",
+            ".w...........p..",
+            "..........l.....",
+            "...w...........y",
+            ".p......w.......",
+            "............b...",
+            "..l...........p.",
+            "y......w.......l",
+        ]
+    )
+
+    // 차원 균열: jagged dimensional rift cutting across
+    private static let effectDimensionRift = s(
+        [".": .clear, "p": .purple, "l": .lavender, "w": .white, "k": .black],
+        [
+            "................",
+            ".......k........",
+            "......kpk.......",
+            ".....kplk.......",
+            "....kplwk.......",
+            "...kplwlk.......",
+            "...kplwpk.......",
+            "....kplwk.......",
+            ".....kplwk......",
+            "......kplwk.....",
+            ".......kplk.....",
+            "........kplk....",
+            ".........kplk...",
+            "..........kpk...",
+            "...........k....",
+            "................",
         ]
     )
 
