@@ -314,13 +314,17 @@ final class PetViewModel: ObservableObject {
     // MARK: - Equipment
 
     func equip(itemId: String) {
-        if inventoryManager.equip(itemId: itemId, state: &state) {
+        var updated = state
+        if inventoryManager.equip(itemId: itemId, state: &updated) {
+            state = updated
             save()
         }
     }
 
     func unequip(slot: EquipmentSlot) {
-        inventoryManager.unequip(slot: slot, state: &state)
+        var updated = state
+        inventoryManager.unequip(slot: slot, state: &updated)
+        state = updated
         save()
     }
 

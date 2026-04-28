@@ -43,6 +43,7 @@ struct InventoryView: View {
                 allItemsSection
             }
             .padding(10)
+            .frame(maxWidth: .infinity)
         }
     }
 
@@ -94,14 +95,13 @@ struct InventoryView: View {
                 }
             }
 
-            if item != nil {
-                Button("해제") {
-                    viewModel.unequip(slot: slot)
-                }
-                .font(.system(size: 9))
-                .foregroundStyle(.red)
-                .buttonStyle(.plain)
+            Button("해제") {
+                if item != nil { viewModel.unequip(slot: slot) }
             }
+            .font(.system(size: 9))
+            .foregroundStyle(.red)
+            .buttonStyle(.plain)
+            .opacity(item != nil ? 1 : 0)
         }
         .frame(maxWidth: .infinity)
     }
@@ -112,7 +112,7 @@ struct InventoryView: View {
                 .font(.caption.bold())
                 .foregroundStyle(.secondary)
 
-            LazyVStack(spacing: 4) {
+            VStack(spacing: 0) {
                 ForEach(viewModel.state.inventory) { item in
                     ItemRow(item: item, isEquipped: isItemEquipped(item)) {
                         if isItemEquipped(item) {
