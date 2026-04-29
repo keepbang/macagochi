@@ -356,7 +356,7 @@ struct PopoverView: View {
                             .frame(maxWidth: .infinity, minHeight: 32)
                             .foregroundStyle(viewModel.selectedTab == tab ? .blue : .secondary)
 
-                        if tab == .notifications && !viewModel.walkNotifications.isEmpty {
+                        if tab == .notifications && viewModel.unreadWalkNotificationCount > 0 {
                             Circle()
                                 .fill(.red)
                                 .frame(width: 7, height: 7)

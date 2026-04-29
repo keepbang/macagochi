@@ -5,10 +5,18 @@ struct NotificationsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
+            HStack(spacing: 10) {
                 Text("알림")
                     .font(.headline)
                 Spacer()
+                if viewModel.unreadWalkNotificationCount > 0 {
+                    Button("전체 읽음") {
+                        viewModel.markAllWalkNotificationsAsRead()
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.blue)
+                    .buttonStyle(.plain)
+                }
                 if !viewModel.walkNotifications.isEmpty {
                     Button("전체 삭제") {
                         viewModel.walkNotifications.removeAll()
