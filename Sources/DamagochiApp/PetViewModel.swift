@@ -237,6 +237,16 @@ final class PetViewModel: ObservableObject {
         }
     }
 
+    func markAllWalkNotificationsAsRead() {
+        for idx in walkNotifications.indices where !walkNotifications[idx].isRead {
+            walkNotifications[idx].isRead = true
+        }
+    }
+
+    var unreadWalkNotificationCount: Int {
+        walkNotifications.lazy.filter { !$0.isRead }.count
+    }
+
     private func applyWalkingDecay() {
         guard state.phase == .alive else { return }
         let oldHp = state.hp
