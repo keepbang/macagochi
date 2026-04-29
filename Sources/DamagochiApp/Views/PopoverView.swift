@@ -4,8 +4,14 @@ import DamagochiRenderer
 
 struct PopoverView: View {
     @ObservedObject var viewModel: PetViewModel
+    @StateObject private var battleVM: BattleViewModel
     @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "onboardingCompleted")
     @State private var statsTooltip: String? = nil
+
+    init(viewModel: PetViewModel) {
+        self.viewModel = viewModel
+        self._battleVM = StateObject(wrappedValue: BattleViewModel(petViewModel: viewModel))
+    }
 
     var body: some View {
         Group {
@@ -41,6 +47,7 @@ struct PopoverView: View {
         case .achievements:  AchievementView(viewModel: viewModel)
         case .graveyard:     GraveyardView(viewModel: viewModel)
         case .notifications: NotificationsView(viewModel: viewModel)
+        case .battle:        BattleView(battleVM: battleVM, petVM: viewModel)
         case .settings:      SettingsView(viewModel: viewModel)
         }
     }

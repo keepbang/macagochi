@@ -38,7 +38,7 @@ public struct EquipmentDropper: Sendable {
         )
     }
 
-    static let itemPool: [Equipment] = [
+    public static let itemPool: [Equipment] = [
         // Head - Common
         Equipment(id: "head_common_1", name: "코딩 모자", slot: .head, rarity: .common, description: "평범한 코딩 모자"),
         Equipment(id: "head_common_2", name: "야구 모자", slot: .head, rarity: .common, description: "편안한 야구 모자"),
