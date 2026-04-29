@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var stateSubscription: AnyCancellable?
     private var walkSubscription: AnyCancellable?
     private var walkingWindowController: WalkingWindowController?
+    private var mainWindowController: MainWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NotificationManager.shared.requestPermission()
@@ -52,6 +53,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self?.walkingWindowController?.hide()
                 }
             }
+
+        mainWindowController = MainWindowController(viewModel: viewModel)
+        mainWindowController?.show()
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag {
+            mainWindowController?.show()
+        }
+        return true
     }
 
     func applicationWillTerminate(_ notification: Notification) {
