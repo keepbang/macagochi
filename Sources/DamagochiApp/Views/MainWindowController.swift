@@ -1,0 +1,51 @@
+import AppKit
+import SwiftUI
+
+@MainActor
+final class MainWindowController: NSObject, NSWindowDelegate {
+    private var window: NSWindow?
+    private let viewModel: PetViewModel
+
+    init(viewModel: PetViewModel) {
+        self.viewModel = viewModel
+    }
+
+    func show() {
+        if let window = window {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let hostingController = NSHostingController(rootView: PopoverView(viewModel: viewModel))
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 280, height: 420),
+            styleMask: [.titled, .closable, .miniaturizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Damagochi"
+        window.contentViewController = hostingController
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        window.center()
+        window.setFrameAutosaveName("DamagochiMainWindow")
+
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        self.window = window
+    }
+
+    func toggle() {
+        if let window = window, window.isVisible {
+            window.orderOut(nil)
+        } else {
+            show()
+        }
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        // Keep the window object so re-opening preserves state and frame.
+    }
+}
