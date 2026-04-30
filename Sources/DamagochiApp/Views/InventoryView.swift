@@ -76,8 +76,10 @@ struct InventoryView: View {
                     interval: 0.5,
                     isDraggable: true
                 )
+                // Shift down so hat pixels don't clip into the rounded corner
+                .offset(y: 6)
             }
-            .frame(height: 120)
+            .frame(height: 128)
 
             Text("아이템을 드래그하여 위치를 조정하세요 · 더블클릭으로 초기화")
                 .font(.caption2)
