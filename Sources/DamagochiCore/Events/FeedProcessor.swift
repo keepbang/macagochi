@@ -68,6 +68,7 @@ public struct FeedProcessor: Sendable {
         if case .sessionStart = event.kind {
             let prevLastDate = state.lastStreakDate
             updateStreak(state: &state, now: event.timestamp)
+            updateWorkdays(state: &state, now: event.timestamp)
             if state.lastStreakDate != prevLastDate {
                 streakUpdated = true
                 newStreakDays = state.streakDays
@@ -163,6 +164,49 @@ public struct FeedProcessor: Sendable {
         state.lastStreakDate = now
         state.longestStreak = max(state.longestStreak, state.streakDays)
         grantStreakMilestone(state: &state)
+    }
+
+    // MARK: - Workdays (영업일 연속 카운터)
+
+    private func updateWorkdays(state: inout PetState, now: Date) {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: now)
+        // 주말(토/일) 세션은 영업일 카운터에 영향을 주지 않는다.
+        let weekday = calendar.component(.weekday, from: today)
+        guard weekday != 1 && weekday != 7 else { return }
+
+        guard let lastDate = state.lastWorkdayDate else {
+            state.consecutiveWorkdays = 1
+            state.lastWorkdayDate = today
+            return
+        }
+
+        let lastDay = calendar.startOfDay(for: lastDate)
+        guard lastDay != today else { return }
+
+        let businessDayDiff = countBusinessDays(from: lastDay, to: today)
+        // 과거 타임스탬프 이벤트가 들어와도 카운터가 거꾸로 가지 않도록 방어.
+        guard businessDayDiff > 0 else { return }
+        if businessDayDiff == 1 {
+            state.consecutiveWorkdays += 1
+        } else {
+            state.consecutiveWorkdays = 1
+        }
+        state.lastWorkdayDate = today
+    }
+
+    private func countBusinessDays(from start: Date, to end: Date) -> Int {
+        let calendar = Calendar.current
+        var count = 0
+        var date = start
+        while date < end {
+            date = calendar.date(byAdding: .day, value: 1, to: date)!
+            let weekday = calendar.component(.weekday, from: date)
+            if weekday != 1 && weekday != 7 {
+                count += 1
+            }
+        }
+        return count
     }
 
     private func grantStreakMilestone(state: inout PetState) {
