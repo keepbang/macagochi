@@ -65,6 +65,7 @@ public struct PetState: Codable, Sendable {
     public var streakDays: Int
     public var longestStreak: Int
     public var lastStreakDate: Date?
+    public var lastWorkdayDate: Date?
     public var bugsCaught: Int
     public var goldenBugsCaught: Int
     public var rainbowBugsCaught: Int
@@ -103,6 +104,7 @@ public struct PetState: Codable, Sendable {
         self.streakDays = 0
         self.longestStreak = 0
         self.lastStreakDate = nil
+        self.lastWorkdayDate = nil
         self.bugsCaught = 0
         self.goldenBugsCaught = 0
         self.rainbowBugsCaught = 0
