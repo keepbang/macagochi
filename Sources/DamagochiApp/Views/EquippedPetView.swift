@@ -2,12 +2,13 @@ import SwiftUI
 import DamagochiCore
 import DamagochiRenderer
 
-/// Renders the pet with each equipped item as a separately-positioned overlay
-/// so the user can drag any item with the mouse to reposition it.
+/// Renders the pet with each equipped item overlaid.
+/// When `isDraggable` is true, each item can be dragged to reposition it.
 struct EquippedPetView: View {
     @ObservedObject var viewModel: PetViewModel
     let scale: CGFloat
     let interval: TimeInterval
+    var isDraggable: Bool = false
 
     var body: some View {
         let baseFrames = viewModel.baseFrames
@@ -18,16 +19,41 @@ struct EquippedPetView: View {
             AnimatedPetView(frames: baseFrames, scale: scale, interval: interval)
 
             ForEach(viewModel.equippedOverlays, id: \.slot) { overlay in
-                DraggableEquipmentOverlay(
-                    viewModel: viewModel,
-                    overlay: overlay,
-                    scale: scale
-                )
+                if isDraggable {
+                    DraggableEquipmentOverlay(
+                        viewModel: viewModel,
+                        overlay: overlay,
+                        scale: scale
+                    )
+                } else {
+                    StaticEquipmentOverlay(
+                        viewModel: viewModel,
+                        overlay: overlay,
+                        scale: scale
+                    )
+                }
             }
         }
         .frame(width: baseWidth, height: baseHeight)
     }
 }
+
+// MARK: - Static Overlay (read-only, no interaction)
+
+private struct StaticEquipmentOverlay: View {
+    @ObservedObject var viewModel: PetViewModel
+    let overlay: SpriteSheet.EquippedOverlay
+    let scale: CGFloat
+
+    var body: some View {
+        let off = viewModel.equipmentOffset(for: overlay.slot)
+        PixelArtView(sprite: overlay.sprite, scale: scale)
+            .offset(x: CGFloat(off.x) * scale, y: CGFloat(off.y) * scale)
+            .allowsHitTesting(false)
+    }
+}
+
+// MARK: - Draggable Overlay
 
 private struct DraggableEquipmentOverlay: View {
     @ObservedObject var viewModel: PetViewModel
@@ -58,7 +84,7 @@ private struct DraggableEquipmentOverlay: View {
                     .allowsHitTesting(false)
             )
             .offset(x: CGFloat(off.x) * scale, y: CGFloat(off.y) * scale)
-            .contentShape(OverlayHitShape(rect: scaledBounds))
+            .contentShape(PixelHitShape(sprite: overlay.sprite, scale: scale))
             .onHover { isHovering = $0 }
             .help("드래그해서 위치 조정 · 더블클릭으로 초기화")
             .onTapGesture(count: 2) {
@@ -86,11 +112,35 @@ private struct DraggableEquipmentOverlay: View {
     }
 }
 
-/// Restricts hit-testing to the sprite's non-transparent bounding rectangle so
-/// that overlays can be picked individually even when their 16x16 frames overlap.
+// MARK: - Shapes
+
+/// Bounding-box shape used for the dashed visual border.
 private struct OverlayHitShape: Shape {
     let rect: CGRect
     func path(in _: CGRect) -> Path {
         Path(rect)
+    }
+}
+
+/// Pixel-accurate hit shape — only covers non-transparent pixels so overlapping
+/// overlays don't block each other's drag gestures.
+private struct PixelHitShape: Shape {
+    let sprite: PixelSprite
+    let scale: CGFloat
+
+    func path(in _: CGRect) -> Path {
+        var path = Path()
+        for row in 0..<sprite.height {
+            for col in 0..<sprite.width {
+                guard !sprite.pixels[row][col].isTransparent else { continue }
+                path.addRect(CGRect(
+                    x: CGFloat(col) * scale,
+                    y: CGFloat(row) * scale,
+                    width: scale,
+                    height: scale
+                ))
+            }
+        }
+        return path
     }
 }

@@ -395,14 +395,25 @@ struct PopoverView: View {
 struct StateAnimationModifier: ViewModifier {
     let state: PetState
 
+    @State private var bounceOffset: CGFloat = 0
+    @State private var wobbleAngle: Angle = .zero
+
     func body(content: Content) -> some View {
         content
             .offset(y: state.phase == .alive && state.mood > 80 ? bounceOffset : 0)
             .rotationEffect(state.hunger < 20 ? wobbleAngle : .zero)
             .saturation(state.phase == .dead ? 0 : 1)
-            .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: state.mood)
+            .onAppear {
+                if state.phase == .alive && state.mood > 80 {
+                    withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
+                        bounceOffset = -4
+                    }
+                }
+                if state.hunger < 20 {
+                    withAnimation(.easeInOut(duration: 0.4).repeatForever(autoreverses: true)) {
+                        wobbleAngle = .degrees(3)
+                    }
+                }
+            }
     }
-
-    @State private var bounceOffset: CGFloat = -3
-    @State private var wobbleAngle: Angle = .degrees(-3)
 }
