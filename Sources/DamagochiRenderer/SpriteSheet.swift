@@ -5340,6 +5340,29 @@ public enum SpriteSheet {
 
     // MARK: - Equipment Overlays
 
+    public struct EquippedOverlay: Sendable {
+        public let slot: EquipmentSlot
+        public let item: Equipment
+        public let sprite: PixelSprite
+    }
+
+    public static func equippedOverlays(
+        equipped: EquippedItems,
+        inventory: [Equipment]
+    ) -> [EquippedOverlay] {
+        var result: [EquippedOverlay] = []
+        if let id = equipped.head, let item = inventory.first(where: { $0.id == id }) {
+            result.append(EquippedOverlay(slot: .head, item: item, sprite: headOverlay(item: item)))
+        }
+        if let id = equipped.hand, let item = inventory.first(where: { $0.id == id }) {
+            result.append(EquippedOverlay(slot: .hand, item: item, sprite: handOverlay(item: item)))
+        }
+        if let id = equipped.effect, let item = inventory.first(where: { $0.id == id }) {
+            result.append(EquippedOverlay(slot: .effect, item: item, sprite: effectOverlay(item: item)))
+        }
+        return result
+    }
+
     public static func frames(
         species: String?,
         stage: Stage,
@@ -5350,12 +5373,7 @@ public enum SpriteSheet {
         let base = frames(species: species, stage: stage, phase: phase)
         guard phase == .alive else { return base }
 
-        let overlayList: [PixelSprite] = [
-            equipped.head.flatMap { id in inventory.first { $0.id == id } }.map { headOverlay(item: $0) },
-            equipped.hand.flatMap { id in inventory.first { $0.id == id } }.map { handOverlay(item: $0) },
-            equipped.effect.flatMap { id in inventory.first { $0.id == id } }.map { effectOverlay(item: $0) },
-        ].compactMap { $0 }
-
+        let overlayList = equippedOverlays(equipped: equipped, inventory: inventory).map { $0.sprite }
         guard !overlayList.isEmpty else { return base }
         return base.map { frame in overlayList.reduce(frame) { $0.overlaid(with: $1) } }
     }

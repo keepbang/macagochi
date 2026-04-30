@@ -18,8 +18,8 @@ struct WalkingPetView: View {
                     .shadow(radius: 6)
 
                 VStack(spacing: 8) {
-                    AnimatedPetView(
-                        frames: viewModel.currentFrames,
+                    EquippedPetView(
+                        viewModel: viewModel,
                         scale: 6.0,
                         interval: 0.5
                     )
