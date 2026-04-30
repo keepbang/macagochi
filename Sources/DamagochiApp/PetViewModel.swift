@@ -171,16 +171,6 @@ final class PetViewModel: ObservableObject {
             onSessionStart: { [weak self] in
                 let event = BehaviorEvent(kind: .sessionStart)
                 Task { @MainActor in self?.handleEvent(event) }
-            },
-            onSessionEnd: { [weak self] summary in
-                Task { @MainActor in
-                    guard self?.isWalking == true else { return }
-                    var parts: [String] = []
-                    if summary.prompts > 0 { parts.append("프롬프트 \(summary.prompts)개") }
-                    if summary.toolUses > 0 { parts.append("툴 \(summary.toolUses)번") }
-                    let detail = parts.isEmpty ? "" : " (\(parts.joined(separator: ", ")))"
-                    self?.showWalkSpeechBubble("작업 완료\(detail)! 수고했어요 🎉")
-                }
             }
         )
         monitor?.startMonitoring()
@@ -426,7 +416,6 @@ final class PetViewModel: ObservableObject {
 
     private func handleEvent(_ event: BehaviorEvent) {
         if event.kind == .stop {
-            if isWalking { showWalkSpeechBubble("작업 완료! 수고했어요 🎉") }
             return
         }
         if event.kind == .notification {
