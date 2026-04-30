@@ -73,14 +73,36 @@ final class PetViewModel: ObservableObject {
     private var petSpeechBubbleTimer: AnyCancellable?
     private var bugPopupTimer: AnyCancellable?
 
-    var currentFrames: [PixelSprite] {
+    var baseFrames: [PixelSprite] {
         SpriteSheet.frames(
             species: state.species,
             stage: state.stage,
-            phase: state.phase,
+            phase: state.phase
+        )
+    }
+
+    var equippedOverlays: [SpriteSheet.EquippedOverlay] {
+        guard state.phase == .alive else { return [] }
+        return SpriteSheet.equippedOverlays(
             equipped: state.equippedItems,
             inventory: state.inventory
         )
+    }
+
+    func equipmentOffset(for slot: EquipmentSlot) -> PixelOffset {
+        (state.equipmentOffsets ?? EquipmentOffsets()).offset(for: slot)
+    }
+
+    func setEquipmentOffset(_ offset: PixelOffset, for slot: EquipmentSlot) {
+        var offsets = state.equipmentOffsets ?? EquipmentOffsets()
+        guard offsets.offset(for: slot) != offset else { return }
+        offsets.setOffset(offset, for: slot)
+        state.equipmentOffsets = offsets
+    }
+
+    func resetEquipmentOffset(for slot: EquipmentSlot) {
+        setEquipmentOffset(.zero, for: slot)
+        save()
     }
 
     var statusMessage: String {

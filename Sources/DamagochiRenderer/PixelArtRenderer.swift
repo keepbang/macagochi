@@ -95,6 +95,23 @@ public struct PixelSprite: Sendable {
         return PixelSprite(width: width, height: height, pixels: result)
     }
 
+    /// Tight bounding box of non-transparent pixels, in pixel-grid coordinates.
+    public var visibleBounds: CGRect? {
+        var minX = width, minY = height, maxX = -1, maxY = -1
+        for row in 0..<height {
+            for col in 0..<width {
+                if !pixels[row][col].isTransparent {
+                    if col < minX { minX = col }
+                    if col > maxX { maxX = col }
+                    if row < minY { minY = row }
+                    if row > maxY { maxY = row }
+                }
+            }
+        }
+        guard maxX >= 0 else { return nil }
+        return CGRect(x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1)
+    }
+
     public static let empty = PixelSprite(width: 0, height: 0, pixels: [])
 }
 

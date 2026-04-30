@@ -38,6 +38,50 @@ public struct EquippedItems: Codable, Sendable {
     }
 }
 
+public struct PixelOffset: Codable, Sendable, Equatable {
+    public var x: Int
+    public var y: Int
+
+    public init(x: Int = 0, y: Int = 0) {
+        self.x = x
+        self.y = y
+    }
+
+    public static let zero = PixelOffset(x: 0, y: 0)
+}
+
+public struct EquipmentOffsets: Codable, Sendable, Equatable {
+    public var head: PixelOffset
+    public var hand: PixelOffset
+    public var effect: PixelOffset
+
+    public init(
+        head: PixelOffset = .zero,
+        hand: PixelOffset = .zero,
+        effect: PixelOffset = .zero
+    ) {
+        self.head = head
+        self.hand = hand
+        self.effect = effect
+    }
+
+    public func offset(for slot: EquipmentSlot) -> PixelOffset {
+        switch slot {
+        case .head:   return head
+        case .hand:   return hand
+        case .effect: return effect
+        }
+    }
+
+    public mutating func setOffset(_ offset: PixelOffset, for slot: EquipmentSlot) {
+        switch slot {
+        case .head:   head = offset
+        case .hand:   hand = offset
+        case .effect: effect = offset
+        }
+    }
+}
+
 public struct PetState: Codable, Sendable {
     public var machineId: String
     public var phase: PetPhase
@@ -52,6 +96,7 @@ public struct PetState: Codable, Sendable {
     public var mbtiScores: MbtiScores
     public var personality: String?
     public var equippedItems: EquippedItems
+    public var equipmentOffsets: EquipmentOffsets?
     public var inventory: [Equipment]
     public var unlockedAchievements: [String]
     public var graveyardEntries: [GraveyardEntry]
@@ -91,6 +136,7 @@ public struct PetState: Codable, Sendable {
         self.mbtiScores = MbtiScores()
         self.personality = nil
         self.equippedItems = EquippedItems()
+        self.equipmentOffsets = EquipmentOffsets()
         self.inventory = []
         self.unlockedAchievements = []
         self.graveyardEntries = []

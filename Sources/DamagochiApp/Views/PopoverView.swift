@@ -99,8 +99,8 @@ struct PopoverView: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(.quaternary.opacity(0.3))
 
-            AnimatedPetView(
-                frames: viewModel.currentFrames,
+            EquippedPetView(
+                viewModel: viewModel,
                 scale: 8.0,
                 interval: 0.5
             )
