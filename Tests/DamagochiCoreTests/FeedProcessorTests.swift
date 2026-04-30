@@ -76,3 +76,26 @@ import Testing
     let ids = Set(result.newAchievements.map(\.id))
     #expect(ids.contains("level_5"))
 }
+
+@Test func feedProcessorIgnoresStaleSessionStartForStreak() throws {
+    // 앱 재시작 시 pending 파일에서 과거 타임스탬프의 sessionStart 이벤트가 replay 되어도
+    // 이미 누적된 streakDays가 거꾸로 깎이지 않아야 한다.
+    let processor = FeedProcessor()
+    var state = PetState(machineId: "test-streak")
+    state.phase = .alive
+
+    let calendar = Calendar.current
+    let today = calendar.startOfDay(for: Date())
+    let twoDaysAgo = try #require(calendar.date(byAdding: .day, value: -2, to: today))
+    let yesterday = try #require(calendar.date(byAdding: .day, value: -1, to: today))
+
+    state.streakDays = 4
+    state.longestStreak = 4
+    state.lastStreakDate = today
+
+    processor.process(event: BehaviorEvent(kind: .sessionStart, timestamp: twoDaysAgo), state: &state)
+    processor.process(event: BehaviorEvent(kind: .sessionStart, timestamp: yesterday), state: &state)
+
+    #expect(state.streakDays == 4)
+    #expect(state.lastStreakDate == today)
+}

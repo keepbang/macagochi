@@ -149,11 +149,16 @@ final class PetViewModel: ObservableObject {
             }
         }
 
+        // Pending 파일은 라이브 옵저버와 별개로 모든 이벤트가 append 된다.
+        // 이미 라이브로 처리된 이벤트가 재시작 시 다시 replay 되면 streakDays/통계가 망가지므로,
+        // lastActiveAt 이후에 발생한 이벤트(즉 앱이 꺼져 있을 때의 catch-up)만 처리한다.
+        let cursor = state.lastActiveAt
         let pending = EventBridge.drainFileEvents()
-        for event in pending {
+        let fresh = pending.filter { $0.timestamp > cursor }
+        for event in fresh {
             processor.process(event: event, state: &state)
         }
-        if !pending.isEmpty { save() }
+        if !fresh.isEmpty { save() }
 
         eventObserver = EventBridge.observe { [weak self] event in
             Task { @MainActor in self?.handleEvent(event) }

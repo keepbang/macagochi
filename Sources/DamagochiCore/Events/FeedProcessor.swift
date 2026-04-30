@@ -153,6 +153,8 @@ public struct FeedProcessor: Sendable {
         guard lastDay != today else { return }
 
         let dayDiff = calendar.dateComponents([.day], from: lastDay, to: today).day ?? 0
+        // 과거 타임스탬프 이벤트가 들어와도 스트릭이 거꾸로 가지 않도록 방어.
+        guard dayDiff > 0 else { return }
         if dayDiff == 1 {
             state.streakDays += 1
         } else {
