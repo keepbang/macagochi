@@ -1,5 +1,6 @@
 import SwiftUI
 import DamagochiCore
+import DamagochiRenderer
 
 struct InventoryView: View {
     @ObservedObject var viewModel: PetViewModel
@@ -33,11 +34,15 @@ struct InventoryView: View {
         .padding(.vertical, 8)
     }
 
-    // MARK: - Equipped Slots
+    // MARK: - Content
 
     private var inventoryContent: some View {
         ScrollView {
             VStack(spacing: 10) {
+                if viewModel.state.phase == .alive && hasEquippedItems {
+                    positionSection
+                    Divider()
+                }
                 equippedSection
                 Divider()
                 allItemsSection
@@ -46,6 +51,42 @@ struct InventoryView: View {
             .frame(maxWidth: .infinity)
         }
     }
+
+    // MARK: - Position Adjustment Section
+
+    private var hasEquippedItems: Bool {
+        viewModel.state.equippedItems.head != nil ||
+        viewModel.state.equippedItems.hand != nil ||
+        viewModel.state.equippedItems.effect != nil
+    }
+
+    private var positionSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("위치 조정")
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(.quaternary.opacity(0.3))
+
+                EquippedPetView(
+                    viewModel: viewModel,
+                    scale: 7.0,
+                    interval: 0.5,
+                    isDraggable: true
+                )
+            }
+            .frame(height: 120)
+
+            Text("아이템을 드래그하여 위치를 조정하세요 · 더블클릭으로 초기화")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .frame(maxWidth: .infinity, alignment: .center)
+        }
+    }
+
+    // MARK: - Equipped Slots
 
     private var equippedSection: some View {
         VStack(alignment: .leading, spacing: 6) {
