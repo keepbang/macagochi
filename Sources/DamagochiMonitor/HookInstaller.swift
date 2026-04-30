@@ -24,6 +24,8 @@ public struct HookInstaller: Sendable {
             "UserPromptSubmit": [HookEntry(command: "damagochi feed prompt")],
             "PostToolUse": [HookEntry(command: "damagochi feed tool")],
             "SessionStart": [HookEntry(command: "damagochi feed session")],
+            "Stop": [HookEntry(command: "damagochi feed stop")],
+            "Notification": [HookEntry(command: "damagochi feed notification")],
         ]
     }
 
@@ -100,6 +102,21 @@ public struct HookInstaller: Sendable {
             if !hasDamagochi { return false }
         }
         return true
+    }
+
+    public func hasAnyDamagochiHook() -> Bool {
+        guard let settings = try? loadSettings(),
+              let hooks = settings["hooks"] as? [String: Any] else { return false }
+        for (_, value) in hooks {
+            guard let entries = value as? [[String: Any]] else { continue }
+            for entry in entries {
+                guard let hooksList = entry["hooks"] as? [[String: Any]] else { continue }
+                if hooksList.contains(where: { ($0["command"] as? String)?.contains(Self.hookMarker) == true }) {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     private func loadSettings() throws -> [String: Any] {
