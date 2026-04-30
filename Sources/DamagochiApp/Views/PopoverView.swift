@@ -104,6 +104,8 @@ struct PopoverView: View {
                 scale: 8.0,
                 interval: 0.5
             )
+            // Shift down so hat pixels don't clip into the rounded corner at the top
+            .offset(y: 8)
             .modifier(StateAnimationModifier(state: viewModel.state))
 
             bugOverlay
@@ -117,7 +119,7 @@ struct PopoverView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
-        .frame(height: 140)
+        .frame(height: 148)
         .animation(.easeOut(duration: 0.3), value: viewModel.bugXPPopup)
     }
 
