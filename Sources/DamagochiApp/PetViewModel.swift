@@ -124,6 +124,11 @@ final class PetViewModel: ObservableObject {
             .map { $0.prefix(8).map { String(format: "%02x", $0) }.joined() }
             ?? "unknown"
         self.state = store.load() ?? PetState(machineId: hostHash)
+        // Auto-upgrade older damagochi hook installs so newly added Stop/Notification hooks land
+        // without forcing the user to manually re-install.
+        if !hookInstaller.isInstalled() && hookInstaller.hasAnyDamagochiHook() {
+            try? hookInstaller.install()
+        }
         self.hookInstalled = hookInstaller.isInstalled()
     }
 
@@ -415,6 +420,17 @@ final class PetViewModel: ObservableObject {
     // MARK: - Private
 
     private func handleEvent(_ event: BehaviorEvent) {
+        if event.kind == .stop {
+            if isWalking { showWalkSpeechBubble("작업 완료! 수고했어요 🎉") }
+            return
+        }
+        if event.kind == .notification {
+            if isWalking {
+                let detail = event.metadata?["message"].map { ": \($0)" } ?? ""
+                showWalkSpeechBubble("선택이 필요해요\(detail) 👀")
+            }
+            return
+        }
         let oldLevel = state.level
         let oldPhase = state.phase
         let result = processor.process(event: event, state: &state)

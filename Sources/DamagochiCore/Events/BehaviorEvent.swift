@@ -4,6 +4,8 @@ public enum EventKind: String, Codable, Sendable {
     case prompt
     case toolUse
     case sessionStart
+    case stop
+    case notification
 }
 
 public struct BehaviorEvent: Codable, Sendable {

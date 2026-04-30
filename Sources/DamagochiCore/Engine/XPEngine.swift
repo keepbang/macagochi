@@ -8,6 +8,7 @@ public struct XPEngine: Sendable {
         case .prompt: return 5
         case .toolUse: return 3
         case .sessionStart: return 10
+        case .stop, .notification: return 0
         }
     }
 

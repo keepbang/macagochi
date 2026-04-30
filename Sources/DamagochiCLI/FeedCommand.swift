@@ -16,7 +16,7 @@ struct Feed: ParsableCommand {
         abstract: "Feed an event to the Damagochi pet"
     )
 
-    @Argument(help: "Event type: prompt, tool, session")
+    @Argument(help: "Event type: prompt, tool, session, stop, notification")
     var eventType: String
 
     func run() throws {
@@ -56,8 +56,20 @@ struct Feed: ParsableCommand {
             }
             UserDefaults.standard.set(now, forKey: key)
 
+        case "stop":
+            kind = .stop
+
+        case "notification":
+            kind = .notification
+            // Claude Code의 Notification hook은 stdin으로 message를 포함한 JSON을 보냄
+            if let data = readStdin(),
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let message = json["message"] as? String {
+                metadata["message"] = message
+            }
+
         default:
-            throw ValidationError("Unknown event type: \(eventType). Use: prompt, tool, session")
+            throw ValidationError("Unknown event type: \(eventType). Use: prompt, tool, session, stop, notification")
         }
 
         let event = BehaviorEvent(kind: kind, metadata: metadata.isEmpty ? nil : metadata)

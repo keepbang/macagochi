@@ -60,6 +60,9 @@ public struct FeedProcessor: Sendable {
 
     @discardableResult
     public func process(event: BehaviorEvent, state: inout PetState) -> FeedResult {
+        if case .stop = event.kind { return FeedResult() }
+        if case .notification = event.kind { return FeedResult() }
+
         var streakUpdated = false
         var newStreakDays = 0
         if case .sessionStart = event.kind {
@@ -82,6 +85,7 @@ public struct FeedProcessor: Sendable {
         case .prompt: state.totalPrompts += 1
         case .toolUse: state.totalToolUses += 1
         case .sessionStart: state.totalSessions += 1
+        case .stop, .notification: break
         }
 
         personalityTracker.updateMbti(scores: &state.mbtiScores, event: event)

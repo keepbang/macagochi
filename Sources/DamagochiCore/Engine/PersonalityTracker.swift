@@ -25,6 +25,8 @@ public struct PersonalityTracker: Sendable {
             if let hour = event.metadata?["hour"], let h = Int(hour) {
                 scores.judging += (h >= 9 && h < 18) ? 1 : -1
             }
+        case .stop, .notification:
+            break
         }
     }
 
